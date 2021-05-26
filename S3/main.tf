@@ -36,7 +36,8 @@ resource "aws_s3_bucket_policy" "bucket" {
         }
         Action    = "s3:PutObject"
         Resource = [
-          "${aws_s3_bucket.bucket.arn}/AWSLogs/166313796795/*"
+          "${aws_s3_bucket.bucket.arn}/AWSLogs/166313796795/*",
+          "${aws_s3_bucket.bucket.arn}/AWSLogs/781470653040/*"
         ]
         Condition = {
           "StringEquals": {
