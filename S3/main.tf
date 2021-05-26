@@ -1,78 +1,63 @@
 resource "aws_s3_bucket" "bucket" {
-  bucket = "my-bucket"
+  bucket = "miyashita-20210526"
   acl    = "private"
 
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
-        kms_master_key_id = aws_kms_key.mykey.arn
-        sse_algorithm     = "aws:kms"
+        sse_algorithm     = "AES256"
       }
     }
   }
 
   lifecycle_rule {
-    id      = "log"
-    enabled = true
-
-    prefix = "log/"
-
-    tags = {
-      rule      = "log"
-      autoclean = "true"
-    }
-
-    transition {
-      days          = 30
-      storage_class = "STANDARD_IA" # or "ONEZONE_IA"
-    }
-
-    transition {
-      days          = 60
-      storage_class = "GLACIER"
-    }
-
-    expiration {
-      days = 90
-    }
-  }
-
-  lifecycle_rule {
-    id      = "tmp"
-    prefix  = "tmp/"
+    id      = "vpc-flowlogs-30days-expire"
     enabled = true
 
     expiration {
-      date = "2016-01-12"
+      days = 30
     }
   }
 }
 
-resource "aws_s3_bucket" "versioning_bucket" {
-  bucket = "my-versioning-bucket"
-  acl    = "private"
+resource "aws_s3_bucket_policy" "bucket" {
+  bucket = aws_s3_bucket.bucket.id
 
-  versioning {
-    enabled = true
-  }
-
-  lifecycle_rule {
-    prefix  = "config/"
-    enabled = true
-
-    noncurrent_version_transition {
-      days          = 30
-      storage_class = "STANDARD_IA"
-    }
-
-    noncurrent_version_transition {
-      days          = 60
-      storage_class = "GLACIER"
-    }
-
-    noncurrent_version_expiration {
-      days = 90
-    }
-  }
+  # Terraform's "jsonencode" function converts a
+  # Terraform expression's result to valid JSON syntax.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AWSLogDeliveryWrite"
+        Effect    = "Allow"
+        Principal = {
+          "Service": "delivery.logs.amazonaws.com"
+        }
+        Action    = "s3:PutObject"
+        Resource = [
+          "${aws_s3_bucket.bucket.arn}/AWSLogs/166313796795/*"
+        ]
+        Condition = {
+          "StringEquals": {
+            "s3:x-amz-acl": "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid       = "AWSLogDeliveryCheck"
+        Effect    = "Allow"
+        Principal = {
+          "Service": "delivery.logs.amazonaws.com"
+        }
+        Action    = [
+          "s3:GetBucketAcl", 
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.b.arn
+        ]
+      }
+    ]
+  })
 }
-
