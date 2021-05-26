@@ -55,7 +55,7 @@ resource "aws_s3_bucket_policy" "bucket" {
           "s3:ListBucket"
         ]
         Resource = [
-          aws_s3_bucket.b.arn
+          aws_s3_bucket.bucket.arn
         ]
       }
     ]
