@@ -2,6 +2,10 @@ resource "aws_s3_bucket" "bucket" {
   bucket = "miyashita-20210526"
   acl    = "private"
 
+  tags = {
+    billing        = "infra-security-team"
+  }
+
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
@@ -13,6 +17,7 @@ resource "aws_s3_bucket" "bucket" {
   lifecycle_rule {
     id      = "vpc-flowlogs-30days-expire"
     enabled = true
+    prefix = "AWSLogs/*/vpcflowlogs/"
 
     expiration {
       days = 30
