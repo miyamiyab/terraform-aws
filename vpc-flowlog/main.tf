@@ -4,3 +4,7 @@ resource "aws_flow_log" "example" {
   traffic_type         = "ALL"
   vpc_id               = var.vpc.id
 }
+
+provider "aws" {
+  region  = "ap-northeast-1"
+}
