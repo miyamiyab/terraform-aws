@@ -1,7 +1,7 @@
-variable "s3_bucket_name" {
+variable "s3_bucket_arn" {
   default = ""
 }
 
-variable "vpc" {
+variable "vpc_id" {
   default = ""
 }
