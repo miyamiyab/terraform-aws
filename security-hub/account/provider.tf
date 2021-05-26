@@ -5,9 +5,6 @@ terraform {
       version = "~> 3.00"
     }
   }
-  backend "local" {
-    path = var.tfstate_file_path
-  }
   required_version = ">= 0.15.0"
 }
 
