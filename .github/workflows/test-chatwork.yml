@@ -19,11 +19,5 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-      - uses: mechiru/chatwork@v2
-        with:
-          roomId: 171332204
-          token: ${{ secrets.CHATWORK_API_KEY }}
-          mapping: |
-            {
-              "miyamiyab": "[To:4367250]masanori"
-            }
+      - uses: send
+        run: curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
