@@ -20,4 +20,6 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: send
-        run: curl -X POST -H "\"X-ChatWorkToken:\" ${{ secrets.CHATWORK_API_KEY }}" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
+        run: |
+          export CHATWORK_API_KEY=${{ secrets.CHATWORK_API_KEY }}
+          curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
