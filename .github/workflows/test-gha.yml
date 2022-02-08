@@ -30,4 +30,3 @@ jobs:
         with:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
-          role-session-name: MySessionName
