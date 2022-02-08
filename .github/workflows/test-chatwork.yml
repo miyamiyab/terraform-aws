@@ -19,5 +19,5 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-      - uses: send
-        run: curl -X POST -H "X-ChatWorkToken: ${{ secrets.CHATWORK_API_KEY }}" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
+      - name: send
+        run: curl -X POST -H "\"X-ChatWorkToken:\" ${{ secrets.CHATWORK_API_KEY }}" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
