@@ -26,5 +26,6 @@ jobs:
           CHATWORK_API_KEY: ${{ secrets.CHATWORK_API_KEY }}
         run: |
           curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
+          echo $CHATWORK_API_KEY
         
           
