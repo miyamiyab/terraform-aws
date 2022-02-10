@@ -1,0 +1,102 @@
+name: Plan
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [
+          s3,
+        ]
+  steps:
+    - uses: actions/checkout@v2
+      name: Checkout
+  
+    - name: Check diff
+      id: diff
+      uses: technote-space/get-diff-action@v4.0.2
+      with:
+        PATTERNS: |
+          $/modules/**/*.tf
+          s3/*.tf
+    
+    - name: Configure AWS Credentials
+      if: steps.diff.outputs.diff
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ap-northeast-1
+        role-to-assume: arn:aws:iam::166313796795:role/test-gha
+  
+    - name: Setup terraform
+      if: steps.diff.outputs.diff
+      uses: hashicorp/setup-terraform@v1
+    
+    - name: Terraform fmt
+      id: fmt
+      if: steps.diff.outputs.diff
+      working-directory: ${{ matrix.dir }}
+      run: terraform fmt -check
+      continue-on-error: true
+    
+    - name: Terraform Init
+      id: init
+      if: steps.diff.outputs.diff
+      working-directory: ${{ matrix.dir }}
+      run: terraform init
+    
+    - name: Terraform Validate
+      id: validate
+      if: steps.diff.outputs.diff
+      working-directory: ${{ matrix.dir }}
+      run: terraform validate -no-color
+    
+    - name: Terraform Plan
+      id: plan
+      if: steps.diff.outputs.diff
+      working-directory: ${{ matrix.dir }}
+      run: terraform plan -no-color
+      continue-on-error: true
+    
+    - uses: actions/github-script@v5
+      if: github.event_name == 'pull_request'
+      env:
+        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Validation 🤖\`${{ steps.validate.outputs.stdout }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          
+          <details><summary>Show Plan</summary>
+          
+          \`\`\`\n
+          ${process.env.PLAN}
+          \`\`\`
+          
+          </details>
+          
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+
+    - name: send
+      env:
+        CHATWORK_API_KEY: ${{ secrets.CHATWORK_API_KEY }}
+      run: |
+        export PR_NUMBER=$(echo $GITHUB_REF | sed -e 's/[^0-9]//g')
+        export PR_URL="https://github.com${{ github.repository }}/pull/${PR_NUMBER}"
+        curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
+        echo ${CHATWORK_API_KEY}
