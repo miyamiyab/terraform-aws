@@ -30,24 +30,6 @@ jobs:
         if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
       
-      - name: Terraform fmt
-        id: fmt
-        if: steps.diff.outputs.diff
-        working-directory: ${{ matrix.dir }}
-        run: terraform fmt -check
-        continue-on-error: true
-      
-      - name: Terraform Init
-        id: init
-        if: steps.diff.outputs.diff
-        working-directory: ${{ matrix.dir }}
-        run: terraform init
-      
-      - name: Terraform Validate
-        id: validate
-        if: steps.diff.outputs.diff
-        working-directory: ${{ matrix.dir }}
-        run: terraform validate -no-color
       
       
       - uses: actions/github-script@v5
