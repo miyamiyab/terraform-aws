@@ -103,8 +103,3 @@ jobs:
           echo "プルリクエストが追加されました。内容を確認し、対応をおねがいいたします。" >> /tmp/tmp.txt
           echo "$PR_URL" >> /tmp/tmp.txt
           curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(cat /tmp/tmp.txt)"
-          
-          
-          
-          
-          EOS
