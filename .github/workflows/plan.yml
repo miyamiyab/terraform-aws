@@ -81,7 +81,7 @@ jobs:
             
             </details>
             
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
               
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -96,5 +96,4 @@ jobs:
         run: |
           export PR_NUMBER=$(echo $GITHUB_REF | sed -e 's/[^0-9]//g')
           export PR_URL="https://github.com${{ github.repository }}/pull/${PR_NUMBER}"
-          curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" -d "body=Hello+ChatWork%21" "https://api.chatwork.com/v2/rooms/171332204/messages"
-          echo ${CHATWORK_API_KEY}
+          curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" -d "body=$PR_URL" "https://api.chatwork.com/v2/rooms/171332204/messages"
