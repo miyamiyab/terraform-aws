@@ -12,6 +12,11 @@ jobs:
     strategy:
       matrix:
         dir: [ S3/ ]
+        
+    permissions:
+      id-token: write
+      contents: read
+      
     steps:
       - uses: actions/checkout@v2
         name: Checkout
