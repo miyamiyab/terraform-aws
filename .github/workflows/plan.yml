@@ -99,10 +99,12 @@ jobs:
         run: |
           export PR_NUMBER=$(echo $GITHUB_REF | sed -e 's/[^0-9]//g')
           export PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
-          curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" "https://api.chatwork.com/v2/rooms/171332204/messages" -d @- <<EOS
-          body=
-          [To:4367250]本人
-          プルリクエストが追加されました。内容を確認し、対応をおねがいいたします。
-          $PR_URL
+          echo "[To:4367250]本人" > /tmp/tmp.txt
+          echo "プルリクエストが追加されました。内容を確認し、対応をおねがいいたします。" >> /tmp/tmp.txt
+          echo "$PR_URL" >> /tmp/tmp.txt
+          curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(cat /tmp/tmp.txt)"
+          
+          
+          
           
           EOS
