@@ -21,8 +21,8 @@ jobs:
         uses: technote-space/get-diff-action@v4.0.2
         with:
           PATTERNS: |
-            s3/modules/**/*.tf
-            s3/*.tf
+            ${{ matrix.dir }}/modules/**/*.tf
+            ${{ matrix.dir }}/*.tf
       
       - name: Configure AWS Credentials
         if: steps.diff.outputs.diff
