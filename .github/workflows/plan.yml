@@ -13,10 +13,6 @@ jobs:
       matrix:
         dir: [ S3/ ]
         
-    permissions:
-      id-token: write
-      contents: write
-      
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -29,12 +25,6 @@ jobs:
             ${{ matrix.dir }}/modules/**/*.tf
             ${{ matrix.dir }}/*.tf
       
-      - name: Configure AWS Credentials
-        if: steps.diff.outputs.diff
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-region: ap-northeast-1
-          role-to-assume: arn:aws:iam::166313796795:role/test-gha
     
       - name: Setup terraform
         if: steps.diff.outputs.diff
@@ -59,12 +49,6 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform validate -no-color
       
-      - name: Terraform Plan
-        id: plan
-        if: steps.diff.outputs.diff
-        working-directory: ${{ matrix.dir }}
-        run: terraform plan -no-color
-        continue-on-error: true
       
       - uses: actions/github-script@v5
         if: github.event_name == 'pull_request'
