@@ -13,8 +13,6 @@ jobs:
       matrix:
         dir: [ S3/ ]
         
-    permissions: write-all
-      
     steps:
       - uses: actions/checkout@v2
         name: Checkout
