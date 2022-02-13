@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [ CrateEC2Instance/prod ]
+        dir: [ create-ec2-instance/prod ]
         
     steps:
       - uses: actions/checkout@v2
