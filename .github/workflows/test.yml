@@ -11,8 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: print env
+      env:
+        COMMIT_INFO: ${{ toJson(github.event.commits) }}
       run: |
-        echo ${{ toJson(github.event.commits) }}
+        echo "$COMMIT_INFO"
     - name: print add files
       if:  github.event.commits[0]['added']
       run: |
