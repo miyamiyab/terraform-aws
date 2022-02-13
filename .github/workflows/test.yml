@@ -1,4 +1,4 @@
-name: CommonPlam
+name: test
 
 on:
   push:
