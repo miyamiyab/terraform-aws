@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [ S3/ ]
+        dir: [ S3/prod ]
         
     steps:
       - uses: actions/checkout@v2
@@ -23,7 +23,7 @@ jobs:
     
       - name: Check diff
         id: diff
-        uses: technote-space/get-diff-action@v4.0.2
+        uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
             ${{ matrix.dir }}/modules/**/*.tf

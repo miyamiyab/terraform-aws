@@ -1,28 +1,32 @@
-name: CommonPlam
+name: CrateEC2Instance
 
 on:
   push:
     branches:
-      - '!main'
+      - main
       
 permissions: 
       id-token: write
+      pull-requests: write
       
 jobs:
-  plan:
-    name: Plan
+  apply:
+    name: Apply
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [ '**/**' ]
+        dir: [ CrateEC2Instance/prod ]
         
     steps:
       - uses: actions/checkout@v2
         name: Checkout
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
     
       - name: Check diff
         id: diff
-        uses: technote-space/get-diff-action@v4.0.2
+        uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
             ${{ matrix.dir }}/modules/**/*.tf
@@ -44,7 +48,7 @@ jobs:
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform fmt -check
-        continue-on-error: true
+        continue-on-error: false
       
       - name: Terraform Init
         id: init
@@ -58,12 +62,12 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform validate -no-color
       
-      - name: Terraform Plan
-        id: plan
+      - name: Terraform Apply
+        id: apply
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: terraform plan -no-color
-        continue-on-error: true
+        run: terraform apply -auto-approve
+        continue-on-error: false
       
       - uses: actions/github-script@v5
         if: github.event_name == 'pull_request'
@@ -75,7 +79,7 @@ jobs:
             const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
             #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖\`${{ steps.validate.outputs.stdout }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            #### Terraform Apply 📖\`${{ steps.plan.outcome }}\`
             
             <details><summary>Show Plan</summary>
             
@@ -93,14 +97,3 @@ jobs:
               repo: context.repo.repo,
               body: output
             })
-  
-      - name: send
-        env:
-          CHATWORK_API_KEY: ${{ secrets.CHATWORK_API_KEY }}
-        run: |
-          export PR_NUMBER=$(echo $GITHUB_REF | sed -e 's/[^0-9]//g')
-          export PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
-          echo "[To:4367250]本人" > /tmp/tmp.txt
-          echo "プルリクエストが追加されました。内容を確認と対応をお願いいたします。" >> /tmp/tmp.txt
-          echo "$PR_URL" >> /tmp/tmp.txt
-          curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(cat /tmp/tmp.txt)"
