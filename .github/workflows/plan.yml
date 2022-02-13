@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [ S3/prod ]
+        dir: [ S3/prod, create-ec2-instance/prod ]
         
     steps:
       - uses: actions/checkout@v2
