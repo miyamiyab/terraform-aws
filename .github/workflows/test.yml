@@ -13,5 +13,5 @@ jobs:
     - name: print env
       run: |
         echo ${{ github.event.commits }}
-        echo ${{ github.event.commits[][added]}}
-        echo ${{ github.event.commits[][modified]}}
+        echo ${{ github.event.commits[0][added]}}
+        echo ${{ github.event.commits[0][modified]}}
