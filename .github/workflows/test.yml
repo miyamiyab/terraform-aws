@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: print env
       run: |
-        echo ${{ github.event.commits }}
+        echo ${{ toJson(github.event.commits) }}
     - name: print add files
       if:  github.event.commits[0]['added']
       run: |
