@@ -23,3 +23,8 @@ jobs:
       run: |
         echo ${{ github.event.commits }}
         echo ${{ github.event.commits[0]['modified']}}
+    - name: print commit message
+      if: github.event.commits[0]['message']
+      run: |
+        echo ${{ github.event.commits }}
+        echo ${{ github.event.commits[0]['message']}}
