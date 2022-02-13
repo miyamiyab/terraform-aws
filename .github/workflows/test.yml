@@ -13,8 +13,6 @@ jobs:
     - name: print env
       run: |
         echo ${{ github.event.commits }}
-        echo ${{ github.event.commits[0][added]}}
-        echo ${{ github.event.commits[0][modified]}}
     - name: print add files
       if:  github.event.commits[0][added]
       run: |
