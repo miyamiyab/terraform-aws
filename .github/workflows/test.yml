@@ -1,9 +1,9 @@
-name: CommonPlam
+name: test
 
 on:
   push:
     branches:
-      - '!main'
+      - develop
       
 jobs:
   plan:
