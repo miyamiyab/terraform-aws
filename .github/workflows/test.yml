@@ -23,3 +23,13 @@ jobs:
       run: |
         echo ${{ github.event.commits }}
         echo ${{ github.event.commits[0][modified]}}
+    - name: print add files
+      if:  github.event.commits[0][added]
+      run: |
+        echo ${{ github.event.commits }}
+        echo ${{ github.event.commits[0][added]}}
+    - name: print modify files
+      if: github.event.commits[0][modified]
+      run: |
+        echo ${{ github.event.commits }}
+        echo ${{ github.event.commits[0][modified]}}
