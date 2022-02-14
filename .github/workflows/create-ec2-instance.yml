@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "create-ec2-instance/**"
       
 permissions: 
       id-token: write
@@ -16,14 +18,11 @@ jobs:
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: [ CrateEC2Instance/prod ]
+        dir: [ create-ec2-instance/prod ]
         
     steps:
       - uses: actions/checkout@v2
         name: Checkout
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2
     
       - name: Check diff
         id: diff

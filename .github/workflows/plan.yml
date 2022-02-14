@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: [ S3/prod ]
+        dir: [ S3/prod, create-ec2-instance/prod ]
         
     steps:
       - uses: actions/checkout@v2
@@ -75,7 +75,7 @@ jobs:
           aws s3api head-object --bucket miyashita-tfstate --key S3/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
-          git push origin ${{ github.ref_name }}
+          git push origin ${GITHUB_REF#refs/heads/}
       
       - uses: actions/github-script@v5
         if: github.event_name == 'pull_request'
