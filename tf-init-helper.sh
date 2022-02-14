@@ -1,7 +1,7 @@
 #!/bin/bash
 set -Ceu
 
-if [ $# != 1 ]; then
+function ErrorMsg() {
   echo "Usage: sh ../../../tf-init-helper.sh"
   echo "Please execute this script on top of your terraform directory."
   echo "e.g. <repository>/dir1/<env>/dir2"
@@ -11,6 +11,10 @@ if [ $# != 1 ]; then
   echo "--init      Execute terraform init with custom tfstate key."
   echo "--key-only  Print tfstate key only. "
   exit 1
+}
+
+if [ $# != 1 ]; then
+  ErrorMsg
 fi
 
 OWNER=$(git config --get remote.origin.url | awk -F'/' '{print $(NF-1)}')
@@ -27,13 +31,6 @@ case "$1" in
     ;;
 
   *)
-    echo "Usage: sh ../../../tf-init-helper.sh"
-    echo "Please execute this script on top of your terraform directory."
-    echo "e.g. <repository>/dir1/<env>/dir2"
-    echo
-    echo "Available argments is below."
-    echo
-    echo "--init      Execute terraform init with custom tfstate key."
-    echo "--key-only  Print tfstate key only. "
+    ErrorMsg
     ;;
 esac
