@@ -12,21 +12,6 @@ jobs:
     steps:
     - name: print env
       env:
-        COMMIT_INFO: ${{ toJson(github.event.commits) }}
+        INFO: ${{ toJson(github.event) }}
       run: |
-        echo "$COMMIT_INFO"
-    - name: print add files
-      if:  github.event.commits[0]['added']
-      run: |
-        echo ${{ github.event.commits }}
-        echo ${{ github.event.commits[0]['added']}}
-    - name: print modify files
-      if: github.event.commits[0]['modified']
-      run: |
-        echo ${{ github.event.commits }}
-        echo ${{ github.event.commits[0]['modified']}}
-    - name: print commit message
-      if: github.event.commits[0]['message']
-      run: |
-        echo ${{ github.event.commits }}
-        echo ${{ github.event.commits[0]['message']}}
+        echo "$INFO"
