@@ -79,6 +79,7 @@ jobs:
         id: etag
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
+        shell: bash
         env:
           EMAIL: ${{ github.event.pusher.email }}
           USER: ${{ github.event.pusher.name }}
