@@ -12,6 +12,6 @@ jobs:
     steps:
     - name: print env
       env:
-        COMMIT_INFO: ${{ toJson(github.event.commits) }}
+        INFO: ${{ toJson(github.event) }}
       run: |
-        echo "$COMMIT_INFO"
+        echo "$INFO"
