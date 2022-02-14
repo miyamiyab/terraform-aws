@@ -71,10 +71,13 @@ jobs:
         id: etag
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
+        env:
+          EMAIL: ${{ github.event.pusher.email }}
+          USER: ${{ github.event.pusher.name }}
         run: |
           aws s3api head-object --bucket miyashita-tfstate --key S3/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          git config --local user.email ${{ github.event.pusher.email }}
-          git config --local user.name  ${{ github.event.pusher.name }}
+          git config --local user.email "${EMAIL}"
+          git config --local user.name "${USER}"
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
           git push origin "${GITHUB_HEAD_REF}"
