@@ -79,18 +79,30 @@ jobs:
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
-        continue-on-error: true
 
       - name: Store ETag of tfstate file
         id: etag
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        shell: bash
+        run: |
+          aws s3api head-object --bucket miyashita-tfstate --key S3/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+        
+      - name: Check diff ETag
+        id: etagDiff
+        uses: technote-space/get-diff-action@v4.0.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          FILES: |
+            ./etag-tfstate.txt
+      
+      - name: Store ETag of tfstate file
+        id: commit
+        if: steps.etagDiff.outputs.etagDiff
+        working-directory: ${{ matrix.dir }}
         env:
           EMAIL: ${{ github.event.pusher.email }}
           USER: ${{ github.event.pusher.name }}
         run: |
-          aws s3api head-object --bucket miyashita-tfstate --key S3/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
           git config --local user.email  ${{ github.event.pusher.email }}
           git config --local user.name  ${{ github.event.pusher.name }}
           git add ./etag-tfstate.txt
@@ -99,7 +111,7 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         id: push
-        if: steps.diff.outputs.diff
+        if: steps.etagDiff.outputs.etagDiff
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
