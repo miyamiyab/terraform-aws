@@ -9,14 +9,23 @@ permissions:
       id-token: write
       
 jobs:
+  directories:
+    runs-on: ubuntu-latest
+    outputs:
+      dir: ${{ steps.set-dirs.outputs.dir }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: set-dirs
+        run: echo "::set-output name=dir::$(ls -d */*/ | jq -R -s -c 'split("\n")[:-1]')"
+
   plan:
     name: Plan
     runs-on: ubuntu-latest
+    needs: [directories]
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: [ '**/**' ]
-        
+        dir: ${{fromJson(needs.directories.outputs.dir)}}        
     steps:
       - uses: actions/checkout@v2
         name: Checkout
