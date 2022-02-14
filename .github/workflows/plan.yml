@@ -76,8 +76,8 @@ jobs:
           USER: ${{ github.event.pusher.name }}
         run: |
           aws s3api head-object --bucket miyashita-tfstate --key S3/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          git config --local user.email "${EMAIL}"
-          git config --local user.name "${USER}"
+          git config --local user.email "${env.EMAIL}"
+          git config --local user.name "${env.USER}"
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
           git push origin "${GITHUB_HEAD_REF}"
