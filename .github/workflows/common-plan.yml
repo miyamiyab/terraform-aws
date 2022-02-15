@@ -144,10 +144,9 @@ jobs:
         continue-on-error: true
       
       # ETagファイルをコミットする
-      # 直前のステップで差分が生じなければエラーになるがスキップする
+      # 直前のステップで差分が生じなければエラーになるが受容しスキップする
       - name: Commit ETag of tfstate file
         id: commitETag
-        if: steps.etagDiff.outputs.diff
         working-directory: ${{ matrix.dir }}
         env:
           EMAIL: ${{ github.event.pusher.email }}
@@ -160,11 +159,10 @@ jobs:
         continue-on-error: true
       
       # ETagファイルをoriginにpushする
-      # 既に最新であればエラーとなるがスキップする
+      # 既に最新であればエラーとなるが受容しスキップする
       - name: Push changes of ETag
         uses: ad-m/github-push-action@master
         id: pushETag
-        if: steps.etagDiff.outputs.diff
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
