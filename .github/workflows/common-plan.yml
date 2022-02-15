@@ -16,6 +16,11 @@ jobs:
   checkETag:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        name: Checkout
+        with:
+          token: ${{ secrets.GH_PAT }}
+          
       - name: Store ETag of tfstate file
         id: etag
         if: steps.diffFormatedTf.outputs.diff
