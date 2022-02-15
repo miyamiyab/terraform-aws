@@ -23,7 +23,6 @@ jobs:
         run: echo "::set-output name=dir::$(ls -d */*/ | jq -R -s -c 'split("\n")[:-1]')"
 
   plan:
-    name: Plan
     runs-on: ubuntu-latest
     needs: directories
     timeout-minutes: 5
