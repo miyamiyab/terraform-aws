@@ -9,6 +9,7 @@ permissions:
       id-token: write
       
 jobs:
+  # 複数のディレクトリに対して効率よくテストを行うため、対象ディレクトリを抽出する。
   directories:
     runs-on: ubuntu-latest
     outputs:
@@ -35,6 +36,7 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
     
+      # 前回のコミットと差分がなければスキップ
       - name: Check diff
         id: diff
         uses: technote-space/get-diff-action@v4.0.2
@@ -51,41 +53,81 @@ jobs:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
     
+      # 常に最新版を使う
       - name: Setup terraform
         if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
       
+      # 強制フォーマット
       - name: Terraform fmt
         id: fmt
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: terraform fmt -check
-        continue-on-error: true
+        run: terraform fmt
       
+      # フォーマットしたうえで、前回のコミットと差分がなければスキップ
+      - name: Check diff formated .tf files.
+        id: diffFormatedTf
+        if: steps.diff.outputs.diff
+        uses: technote-space/get-diff-action@v4.0.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          PATTERNS: |
+            ${{ matrix.dir }}/modules/**/*.tf
+            ${{ matrix.dir }}/*.tf
+
+      # フォーマットしてなお差分があればコミット
+      - name: Commit formated .tf files
+        id: commitFormatedTf
+        if: steps.diffFormatedTf.outputs.diff
+        working-directory: ${{ matrix.dir }}
+        env:
+          EMAIL: ${{ github.event.pusher.email }}
+          USER: ${{ github.event.pusher.name }}
+        run: |
+          git config --local user.email  ${{ github.event.pusher.email }}
+          git config --local user.name  ${{ github.event.pusher.name }}
+          git add .
+          git commit -m "fmt: Formted .tf files"
+        
+      # フォーマット後の差分があった場合は、originを更新
+      - name: Push changes formated .tf files
+        uses: ad-m/github-push-action@master
+        id: pushFormated
+        if: steps.diffFormatedTf.outputs.diff
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
+      # 初期化。バックエンドは重複しないように動的に設定する
       - name: Terraform Init
         id: init
-        if: steps.diff.outputs.diff
+        if: steps.diffFormatedTf.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
       
       - name: Terraform Validate
         id: validate
-        if: steps.diff.outputs.diff
+        if: steps.diffFormatedTf.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform validate -no-color
       
       - name: Terraform Plan
         id: plan
-        if: steps.diff.outputs.diff
+        if: steps.diffFormatedTf.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
 
+      # 承認～マージまでの間に割り込みでデプロイが発生していないことを確認する
+      # 開発ブランチのpushの段階でチェックするのは、以下の通り。
+      # 1. git pushに必要な情報をコンテキストから抽出するには、originにpushする段階が楽なため
+      # 2. プルリク前からETagをチェックしておき、プルリク作成時に差分があれば弾くため
       - name: Store ETag of tfstate file
         id: etag
-        if: steps.diff.outputs.diff
+        if: steps.diffFormatedTf.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: |
-          aws s3api head-object --bucket miyashita-tfstate --key S3/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
         
       - name: Check diff ETag
         id: etagDiff
@@ -96,8 +138,8 @@ jobs:
             ./etag-tfstate.txt
       
       - name: Store ETag of tfstate file
-        id: commit
-        if: steps.etagDiff.outputs.etagDiff
+        id: commitETag
+        if: steps.etagDiff.outputs.diff
         working-directory: ${{ matrix.dir }}
         env:
           EMAIL: ${{ github.event.pusher.email }}
@@ -108,10 +150,10 @@ jobs:
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
         
-      - name: Push changes
+      - name: Push changes of ETag
         uses: ad-m/github-push-action@master
-        id: push
-        if: steps.etagDiff.outputs.etagDiff
+        id: pushETag
+        if: steps.etagDiff.outputs.diff
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
