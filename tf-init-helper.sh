@@ -18,12 +18,20 @@ if [ $# != 1 ]; then
 fi
 
 OWNER=$(git config --get remote.origin.url | awk -F'/' '{print $(NF-1)}')
-REPO=$(git config --get remote.origin.url | awk -F'/' '{print $NF}')
+REPO=$(git config --get remote.origin.url | awk -F'/' '{print $NF}' | sed -e 's/.git$//g')
 TFSTATE_KEY="${OWNER}/$(pwd | grep -o ${REPO}.*)/terraform.tfstate"
 
 case "$1" in
   --init)
     terraform init -backend-config="key=${TFSTATE_KEY}"
+    ;;
+
+  --migrate)
+    terraform init -migrate-state -backend-config="key=${TFSTATE_KEY}"
+    ;;
+
+  --reconfigure)
+    terraform init -reconfigure -backend-config="key=${TFSTATE_KEY}"
     ;;
 
   --key-only)
