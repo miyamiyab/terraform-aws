@@ -9,12 +9,29 @@ permissions:
       id-token: write
       
 jobs:
+  # 複数のディレクトリに対して効率よくテストを行うため、対象ディレクトリを抽出する。
+  directories:
+    runs-on: ubuntu-latest
+    outputs:
+      dir: ${{ steps.set-dirs.outputs.dir }}
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout
+        with:
+          token: ${{ secrets.GH_PAT }}
+      - id: set-dirs
+        run: echo "::set-output name=dir::$(ls -d */*/ | jq -R -s -c 'split("\n")[:-1]')"
+
   # 承認～マージまでの間に割り込みでデプロイが発生していないことを確認する
   # 開発ブランチのpushの段階でチェックするのは、以下の通り。
   # 1. git pushに必要な情報をコンテキストから抽出するには、originにpushする段階が楽なため
   # 2. プルリク前からETagをチェックしておき、プルリク作成時に差分があれば弾くため
   checkETag:
     runs-on: ubuntu-latest
+    needs: directories
+    strategy:
+      matrix:
+        dir: ${{fromJson(needs.directories.outputs.dir)}} 
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -57,24 +74,10 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
 
-  # 複数のディレクトリに対して効率よくテストを行うため、対象ディレクトリを抽出する。
-  directories:
-    runs-on: ubuntu-latest
-    needs: checkETag
-    outputs:
-      dir: ${{ steps.set-dirs.outputs.dir }}
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout
-        with:
-          token: ${{ secrets.GH_PAT }}
-      - id: set-dirs
-        run: echo "::set-output name=dir::$(ls -d */*/ | jq -R -s -c 'split("\n")[:-1]')"
-
   plan:
     name: Plan
     runs-on: ubuntu-latest
-    needs: [directories]
+    needs: checkETag
     timeout-minutes: 5
     strategy:
       matrix:
