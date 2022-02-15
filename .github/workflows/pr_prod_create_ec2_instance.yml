@@ -86,8 +86,8 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
 
-      - name: Comment to pull request.
-        uses: actions/github-script@v5
+      - name: Comment to pull request
+        uses: actions/github-script@v6
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
