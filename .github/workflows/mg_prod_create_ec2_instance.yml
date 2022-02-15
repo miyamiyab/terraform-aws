@@ -75,9 +75,17 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform apply -auto-approve
       
-      - uses: actions/github-script@v5
+      - name: Find current pull request
+        uses: jwalton/gh-find-current-pr@v1
+        id: findPr
+        with:
+          state: all
+      
+      - name: Comment to pull request
+        uses: actions/github-script@v6
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          PR_NUM: ${{ steps.findPr.outputs.pr }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -97,7 +105,7 @@ jobs:
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
               
             github.rest.issues.createComment({
-              issue_number: context.issue.number,
+              issue_number: process.env.PR_NUM,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
