@@ -63,7 +63,7 @@ jobs:
       - name: Terraform Init
         id: init
         working-directory: ${{ matrix.dir }}
-        run: terraform init
+        run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
       
       - name: Terraform Validate
         id: validate
