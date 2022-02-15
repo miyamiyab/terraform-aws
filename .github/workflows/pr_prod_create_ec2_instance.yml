@@ -14,7 +14,10 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 5        
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        dir: [ create-ec2-instance/prod ]
     steps:
       - uses: actions/checkout@v2
         name: Checkout
