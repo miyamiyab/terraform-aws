@@ -20,7 +20,7 @@ resource "aws_s3_bucket" "bucket" {
     prefix  = "AWSLogs/*/vpcflowlogs/"
 
     expiration {
-      days = 10
+      days = 20
     }
   }
 }
