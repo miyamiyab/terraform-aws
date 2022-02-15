@@ -124,7 +124,7 @@ jobs:
   # 2. プルリク前からETagをチェックしておき、プルリク作成時に差分があれば弾くため
   checkETag:
     runs-on: ubuntu-latest
-    needs: plan
+    needs: directories
     strategy:
       matrix:
         dir: ${{fromJson(needs.directories.outputs.dir)}} 
