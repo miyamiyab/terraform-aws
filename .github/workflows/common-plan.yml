@@ -23,7 +23,6 @@ jobs:
           
       - name: Store ETag of tfstate file
         id: etag
-        if: steps.diffFormatedTf.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: |
           aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
