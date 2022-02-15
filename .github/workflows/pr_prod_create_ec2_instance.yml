@@ -1,0 +1,127 @@
+name: PR_PROD_CREATE_EC2_INSTANCE
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "create-ec2-instance/prod/**"
+      
+permissions: 
+      id-token: write
+      pull-requests: write
+      
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        dir: [ create-ec2-instance/prod ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
+    
+      - name: Check ETag
+        id: chkETag
+        working-directory: ${{ matrix.dir }}
+        run: |
+          mv ./etag-tfstate.txt{,.old}
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
+          if [ $? -ne 0 ]; then
+            echo "The ETag has changed since the last check."
+            exit 1
+          fi
+        
+      # 前回のコミットと差分がなければスキップ
+      - name: Check diff
+        id: diff
+        uses: technote-space/get-diff-action@v4.0.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          PATTERNS: |
+            ${{ matrix.dir }}/modules/**/*.tf
+            ${{ matrix.dir }}/*.tf
+      
+      - name: Configure AWS Credentials
+        if: steps.diff.outputs.diff
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+    
+      # 常に最新版を使う
+      - name: Setup terraform
+        if: steps.diff.outputs.diff
+        uses: hashicorp/setup-terraform@v1
+      
+      # フォーマットが正しくなければ失敗させる
+      - name: Terraform fmt
+        id: fmt
+        if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
+        run: terraform fmt -check
+      
+      # 初期化
+      # バックエンドは重複しないように動的に設定する
+      - name: Terraform Init
+        id: init
+        if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
+        run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
+      
+      - name: Terraform Validate
+        id: validate
+        if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
+        run: terraform validate -no-color
+      
+      # プルリク作成段階でのplanでは想定外の発生は許容せず失敗させる
+      - name: Terraform Plan
+        id: plan
+        if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
+        run: terraform plan -no-color
+
+      - name: Comment to pull request.
+        uses: actions/github-script@v5
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outputs.stdout }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+              
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+  
+      - name: send
+        env:
+          CHATWORK_API_KEY: ${{ secrets.CHATWORK_API_KEY }}
+        run: |
+          export PR_NUMBER=$(echo $GITHUB_REF | sed -e 's/[^0-9]//g')
+          export PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
+          echo "[To:4367250]本人" > /tmp/tmp.txt
+          echo "プルリクエストが追加されました。内容を確認と対応をお願いいたします。" >> /tmp/tmp.txt
+          echo "$PR_URL" >> /tmp/tmp.txt
+          curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_KEY" "https://api.chatwork.com/v2/rooms/171332204/messages" -d "body=$(cat /tmp/tmp.txt)"

@@ -1,0 +1,17 @@
+name: test
+
+on:
+  push:
+    branches:
+      - develop
+      
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    steps:
+    - name: print env
+      env:
+        INFO: ${{ toJson(github.event) }}
+      run: |
+        echo "$INFO"
