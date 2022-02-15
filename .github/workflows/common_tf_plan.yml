@@ -57,47 +57,13 @@ jobs:
         if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
       
-      # 強制フォーマット
+      # フォーマットチェック
       - name: Terraform fmt
         id: fmt
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: terraform fmt
-      
-      # フォーマットしたうえで、前回のコミットと差分がなければスキップ
-      - name: Check diff formated .tf files.
-        id: diffFormatedTf
-        if: steps.diff.outputs.diff
-        uses: technote-space/get-diff-action@v4.0.2
-        with:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          PATTERNS: |
-            ${{ matrix.dir }}/modules/**/*.tf
-            ${{ matrix.dir }}/*.tf
-
-      # フォーマットしてなお差分があればコミット
-      - name: Commit formated .tf files
-        id: commitFormatedTf
-        if: steps.diffFormatedTf.outputs.diff
-        working-directory: ${{ matrix.dir }}
-        env:
-          EMAIL: ${{ github.event.pusher.email }}
-          USER: ${{ github.event.pusher.name }}
-        run: |
-          git config --local user.email  ${{ github.event.pusher.email }}
-          git config --local user.name  ${{ github.event.pusher.name }}
-          git add .
-          git commit -m "fmt: Formted .tf files"
+        run: terraform fmt -check
         
-      # フォーマット後の差分があった場合は、originを更新
-      - name: Push changes formated .tf files
-        uses: ad-m/github-push-action@master
-        id: pushFormated
-        if: steps.diffFormatedTf.outputs.diff
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
-
       # 初期化。バックエンドは重複しないように動的に設定する
       - name: Terraform Init
         id: init
