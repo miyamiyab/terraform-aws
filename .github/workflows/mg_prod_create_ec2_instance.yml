@@ -19,8 +19,10 @@ jobs:
       matrix:
         dir: [ create-ec2-instance/prod ]
     steps:
-      - uses: actions/checkout@v2
-        name: Checkout
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
     
       - name: Check ETag
         id: chkETag
