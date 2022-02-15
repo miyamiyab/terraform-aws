@@ -10,22 +10,68 @@ permissions:
       pull-requests: write
       
 jobs:
+  # 複数のディレクトリに対して効率よくテストを行うため、対象ディレクトリを抽出する。
+  directories:
+    runs-on: ubuntu-latest
+    outputs:
+      dir: ${{ steps.set-dirs.outputs.dir }}
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout
+        with:
+          token: ${{ secrets.GH_PAT }}
+      - id: set-dirs
+        run: echo "::set-output name=dir::$(ls -d */*/ | jq -R -s -c 'split("\n")[:-1]')"
+
   plan:
     name: Plan
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: [ S3/prod, create-ec2-instance/prod ]
+        dir: ${{fromJson(needs.directories.outputs.dir)}} 
         
     steps:
       - uses: actions/checkout@v2
         name: Checkout
+        with:
+          token: ${{ secrets.GH_PAT }}
     
+      - name: Store ETag of tfstate file
+        id: etag
+        working-directory: ${{ matrix.dir }}
+        run: |
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+        
+      - name: Check diff ETag
+        id: etagDiff
+        uses: technote-space/get-diff-action@v4.0.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          FILES: |
+            ./etag-tfstate.txt
+
+      - name: Comment pull request
+        uses: actions/github-script@v5
+        if: steps.etagDiff.outputs.diff
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |              
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'tfstate file was changed on ${{ matrix.dir }}'
+            })
+
+
+      # 前回のコミットと差分がなければスキップ
       - name: Check diff
         id: diff
-        uses: technote-space/get-diff-action@v6
+        if: !steps.etagDiff.outputs.diff
+        uses: technote-space/get-diff-action@v4.0.2
         with:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PATTERNS: |
             ${{ matrix.dir }}/modules/**/*.tf
             ${{ matrix.dir }}/*.tf
@@ -37,17 +83,19 @@ jobs:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
     
+      # 常に最新版を使う
       - name: Setup terraform
         if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
       
+      # フォーマットが正しくなければ失敗させる
       - name: Terraform fmt
         id: fmt
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform fmt -check
-        continue-on-error: true
       
+      # 初期化。バックエンドは重複しないように動的に設定する
       - name: Terraform Init
         id: init
         if: steps.diff.outputs.diff
@@ -60,34 +108,17 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform validate -no-color
       
+      # プルリク作成段階でのplanでは想定外の発生は許容せず失敗させる
       - name: Terraform Plan
         id: plan
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
-        continue-on-error: true
 
-      - name: Store ETag of tfstate file
-        id: etag
-        if: steps.diff.outputs.diff
-        working-directory: ${{ matrix.dir }}
-        run: |
-          aws s3api head-object --bucket miyashita-tfstate --key S3/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add ./etag-tfstate.txt
-          git commit -m "add: Store ETag of tfstate file"
-        
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        id: push
-        if: steps.diff.outputs.diff
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+      
       
       - uses: actions/github-script@v5
-        if: github.event_name == 'pull_request'
+        if: !steps.etagDiff.outputs.diff 
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
