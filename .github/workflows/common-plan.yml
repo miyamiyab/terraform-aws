@@ -22,66 +22,14 @@ jobs:
       - id: set-dirs
         run: echo "::set-output name=dir::$(ls -d */*/ | jq -R -s -c 'split("\n")[:-1]')"
 
-  # 承認～マージまでの間に割り込みでデプロイが発生していないことを確認する
-  # 開発ブランチのpushの段階でチェックするのは、以下の通り。
-  # 1. git pushに必要な情報をコンテキストから抽出するには、originにpushする段階が楽なため
-  # 2. プルリク前からETagをチェックしておき、プルリク作成時に差分があれば弾くため
-  checkETag:
-    runs-on: ubuntu-latest
-    needs: directories
-    strategy:
-      matrix:
-        dir: ${{fromJson(needs.directories.outputs.dir)}} 
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout
-        with:
-          token: ${{ secrets.GH_PAT }}
-
-      - name: Store ETag of tfstate file
-        id: etag
-        working-directory: ${{ matrix.dir }}
-        run: |
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-        continue-on-error: true
-
-      - name: Check diff ETag
-        id: etagDiff
-        uses: technote-space/get-diff-action@v4.0.2
-        with:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          FILES: |
-            ./etag-tfstate.txt
-      
-      - name: Commit ETag of tfstate file
-        id: commitETag
-        if: steps.etagDiff.outputs.diff
-        working-directory: ${{ matrix.dir }}
-        env:
-          EMAIL: ${{ github.event.pusher.email }}
-          USER: ${{ github.event.pusher.name }}
-        run: |
-          git config --local user.email  ${{ github.event.pusher.email }}
-          git config --local user.name  ${{ github.event.pusher.name }}
-          git add ./etag-tfstate.txt
-          git commit -m "add: Store ETag of tfstate file"
-        
-      - name: Push changes of ETag
-        uses: ad-m/github-push-action@master
-        id: pushETag
-        if: steps.etagDiff.outputs.diff
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
-
   plan:
     name: Plan
     runs-on: ubuntu-latest
-    needs: checkETag
+    needs: directories
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: ${{fromJson(needs.directories.outputs.dir)}}        
+        dir: ${{fromJson(needs.directories.outputs.dir)}}
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -170,4 +118,53 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
 
+# 承認～マージまでの間に割り込みでデプロイが発生していないことを確認する
+  # 開発ブランチのpushの段階でチェックするのは、以下の通り。
+  # 1. git pushに必要な情報をコンテキストから抽出するには、originにpushする段階が楽なため
+  # 2. プルリク前からETagをチェックしておき、プルリク作成時に差分があれば弾くため
+  checkETag:
+    runs-on: ubuntu-latest
+    needs: plan
+    strategy:
+      matrix:
+        dir: ${{fromJson(needs.directories.outputs.dir)}} 
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      # 各tfstateファイルのETagを出力
+      # tfstateファイルがなければ空ファイルが生成される
+      - name: Store ETag of tfstate file
+        id: etag
+        working-directory: ${{ matrix.dir }}
+        run: |
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+        continue-on-error: true
       
+      # ETagファイルをコミットする
+      # 直前のステップで差分が生じなければエラーになるがスキップする
+      - name: Commit ETag of tfstate file
+        id: commitETag
+        if: steps.etagDiff.outputs.diff
+        working-directory: ${{ matrix.dir }}
+        env:
+          EMAIL: ${{ github.event.pusher.email }}
+          USER: ${{ github.event.pusher.name }}
+        run: |
+          git config --local user.email  ${{ github.event.pusher.email }}
+          git config --local user.name  ${{ github.event.pusher.name }}
+          git add ./etag-tfstate.txt
+          git commit -m "add: Store ETag of tfstate file"
+        continue-on-error: true
+      
+      # ETagファイルをoriginにpushする
+      # 既に最新であればエラーとなるがスキップする
+      - name: Push changes of ETag
+        uses: ad-m/github-push-action@master
+        id: pushETag
+        if: steps.etagDiff.outputs.diff
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
