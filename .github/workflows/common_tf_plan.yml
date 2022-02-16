@@ -57,12 +57,25 @@ jobs:
         if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
       
-      # フォーマットチェック
+      # 強制フォーマット
       - name: Terraform fmt
         id: fmt
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: terraform fmt -check
+        run: terraform fmt
+
+      # CI前にフォーマット済みの場合はエラーになるが処理を継続する
+      - name: Commit ETag of tfstate file
+        id: commitTf
+        working-directory: ${{ matrix.dir }}
+        run: |
+          git config --local user.email  ${{ github.event.pusher.email }}
+          git config --local user.name  ${{ github.event.pusher.name }}
+          git diff
+          git add .
+          git commit -m "fmt": Formated .tf files."
+          git push origin ${{ github.ref }}
+        continue-on-error: true
         
       # 初期化。バックエンドは重複しないように動的に設定する
       - name: Terraform Init
