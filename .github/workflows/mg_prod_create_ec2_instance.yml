@@ -148,9 +148,9 @@ jobs:
             };
 
             let prNumber;
-            if (isNumber(Number(process.env.PR_NUM))) {
+            if (isNumber(Number(process.env.PR_NUM)) > 0) {
               prNumber = Number(process.env.PR_NUM);
-            } else if (isNumber(Number(process.env.PR_NUM_INPUT))) {
+            } else if (isNumber(Number(process.env.PR_NUM_INPUT)) > 0) {
               prNumber = Number(process.env.PR_NUM_INPUT);
             }
 
