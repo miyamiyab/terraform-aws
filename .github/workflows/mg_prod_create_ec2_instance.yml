@@ -41,6 +41,7 @@ jobs:
               
   apply:
     runs-on: ubuntu-latest
+    needs: isPrExsit
     timeout-minutes: 5
     strategy:
       matrix:
@@ -115,27 +116,15 @@ jobs:
         uses: jwalton/gh-find-current-pr@v1
         with:
           state: all
-
-      - name: Set pull request number into env from findPr.
-        id: setPrNumberfindPr
-        if: steps.diff.outputs.diff
-        env:
-          PR_NUM: ${{ steps.findPr.outputs.pr }}
-        run: echo ${{ steps.findPr.outputs.pr }}
-
-      - name: Set pull request number into env from input.
-        id: setPrNumberInput
-        if: github.event.inputs.retry
-        env:
-          PR_NUM: ${{ github.event.inputs.prNumber }}
-        run: echo ${{ github.event.inputs.prNumber }}
-      
+          
       - name: Comment to pull request
         id: commentPr
         if: steps.diff.outputs.diff || github.event.inputs.retry
         uses: actions/github-script@v6
         env:
           PLAN: "terraform\n${{ steps.apply.outputs.stdout }}"
+          PR_NUM: ${{ steps.findPr.outputs.pr }}
+          PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -153,9 +142,16 @@ jobs:
             </details>
             
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
-              
+            
+            let prNumber;
+            if (Number.isInteger(Number(process.env.PR_NUM))) {
+              prNumber = process.env.PR_NUM;
+            } else if (Number.isInteger(Number(process.env.PR_NUM_INPUT))) {
+              prNumber = process.env.PR_NUM_INPUT;
+            }
+
             github.rest.issues.createComment({
-              issue_number: process.env.PR_NUM,
+              issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
