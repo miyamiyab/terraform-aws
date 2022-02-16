@@ -113,9 +113,6 @@ jobs:
       - name: Commit ETag of tfstate file
         id: commitETag
         working-directory: ${{ matrix.dir }}
-        env:
-          EMAIL: ${{ github.event.pusher.email }}
-          USER: ${{ github.event.pusher.name }}
         run: |
           git config --local user.email  ${{ github.event.pusher.email }}
           git config --local user.name  ${{ github.event.pusher.name }}
