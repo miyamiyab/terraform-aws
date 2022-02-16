@@ -165,7 +165,7 @@ jobs:
         id: tfsec
         uses: reviewdog/action-tfsec@master
         with:
-          github_token: ${{ secrets.github_token }}
+          github_token: ${{ secrets.GH_PAT }}
           working_directory: ${{ matrix.dir }}
           level: info 
           reporter: github-pr-review
