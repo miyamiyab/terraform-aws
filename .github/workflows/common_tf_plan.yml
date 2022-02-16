@@ -1,4 +1,4 @@
-name: COMMON_TF__PLAN
+name: COMMON_TF_PLAN
 
 on:
   push:
@@ -99,13 +99,20 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+
       # 各tfstateファイルのETagを出力
       # tfstateファイルがなければ空ファイルが生成される
       - name: Store ETag of tfstate file
         id: etag
         working-directory: ${{ matrix.dir }}
         run: |
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          cat ./etag-tfstate.txt
         continue-on-error: true
       
       # ETagファイルをコミットする
@@ -113,21 +120,11 @@ jobs:
       - name: Commit ETag of tfstate file
         id: commitETag
         working-directory: ${{ matrix.dir }}
-        env:
-          EMAIL: ${{ github.event.pusher.email }}
-          USER: ${{ github.event.pusher.name }}
         run: |
           git config --local user.email  ${{ github.event.pusher.email }}
           git config --local user.name  ${{ github.event.pusher.name }}
+          git diff
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
+          git push origin ${{ github.ref }}
         continue-on-error: true
-      
-      # ETagファイルをoriginにpushする
-      # 既に最新であればエラーとなるが受容しスキップする
-      - name: Push changes of ETag
-        uses: ad-m/github-push-action@master
-        id: pushETag
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
