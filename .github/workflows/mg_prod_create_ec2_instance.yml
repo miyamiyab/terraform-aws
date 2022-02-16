@@ -143,15 +143,11 @@ jobs:
             
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
             
-            const isNumber = function(value) {
-              return ((typeof value === 'number') && (isFinite(value)));
-            };
-
             let prNumber;
-            if (isNumber(Number(process.env.PR_NUM)) > 0) {
-              prNumber = Number(process.env.PR_NUM);
-            } else if (isNumber(Number(process.env.PR_NUM_INPUT)) > 0) {
-              prNumber = Number(process.env.PR_NUM_INPUT);
+            if (!isNaN(parseInt(process.env.PR_NUM))) {
+              prNumber = process.env.PR_NUM;
+            } else if (!isNaN(parseInt((process.env.PR_NUM_INPUT))) {
+              prNumber = process.env.PR_NUM_INPUT;
             }
 
             github.rest.issues.createComment({
