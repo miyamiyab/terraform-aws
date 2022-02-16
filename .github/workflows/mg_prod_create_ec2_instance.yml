@@ -150,8 +150,10 @@ jobs:
 
             if (isNumber(process.env.PR_NUM)) {
               prNumber = process.env.PR_NUM;
+              console.log("process.env.PR_NUM:" + typeof(process.env.PR_NUM));
             } else if (isNumber(process.env.PR_NUM_INPUT)) {
               prNumber = process.env.PR_NUM_INPUT;
+              console.log("process.env.PR_NUM_INPUT:" + typeof(process.env.PR_NUM_INPUT));
             }
 
             console.log(prNumber);
