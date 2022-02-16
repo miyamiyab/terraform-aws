@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - "create-ec2-instance/prod/**"
+  workflow_dispatch:
+      
       
 permissions: 
       id-token: write
@@ -84,7 +86,7 @@ jobs:
       - name: Comment to pull request
         uses: actions/github-script@v6
         env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          PLAN: "terraform\n${{ steps.apply.outputs.stdout }}"
           PR_NUM: ${{ steps.findPr.outputs.pr }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
