@@ -123,7 +123,7 @@ jobs:
 
       - name: Comment to pull request
         id: commentPr
-        if: steps.diff.outputs.diff || github.event.inputs.retry
+        if: steps.diff.outputs.diff
         uses: actions/github-script@v6
         env:
           PLAN: "terraform\n${{ steps.apply.outputs.stdout }}"
