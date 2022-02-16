@@ -99,6 +99,13 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
+      - name: Configure AWS Credentials
+        if: steps.diff.outputs.diff
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+
       # 各tfstateファイルのETagを出力
       # tfstateファイルがなければ空ファイルが生成される
       - name: Store ETag of tfstate file
