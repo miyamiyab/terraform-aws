@@ -23,8 +23,8 @@ jobs:
         echo "$INFO"
     - name: check esist pr
       env:
-        REPO: ${ github.repository }
-        PR: ${ github.event.inputs.prNumber }
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.inputs.prNumber }}
       run: |
         curl -i -u miyamiyab:${{ secrets.GH_PAT }} \
             -H "Accept: application/vnd.github.v3+json" \
