@@ -45,7 +45,6 @@ jobs:
       # 前回のコミットと差分がなければスキップ
       - name: Check diff
         id: diff
-        if: github.event.inputs.retry != true
         uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
@@ -53,7 +52,7 @@ jobs:
             ${{ matrix.dir }}/*.tf
       
       - name: Configure AWS Credentials
-        if: steps.diff.outputs.diff
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
