@@ -155,6 +155,8 @@ jobs:
             }
 
             console.log(prNumber);
+            console.log(process.env.PR_NUM);
+            console.log(process.env.PR_NUM_INPUT);
 
             github.rest.issues.createComment({
               issue_number: prNumber,
