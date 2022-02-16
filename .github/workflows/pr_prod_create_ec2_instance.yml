@@ -126,7 +126,7 @@ jobs:
         if: steps.diff.outputs.diff
         uses: actions/github-script@v6
         env:
-          PLAN: "terraform\n${{ steps.apply.outputs.stdout }}"
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
           PR_NUM: ${{ steps.findPr.outputs.pr }}
           PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
         with:
