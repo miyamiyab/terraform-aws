@@ -7,7 +7,12 @@ on:
     paths:
       - "create-ec2-instance/prod/**"
   workflow_dispatch:
-      
+    inputs:
+      branch:
+        description: Deploy source
+        required: true
+        default: main
+        type: string      
       
 permissions: 
       id-token: write
