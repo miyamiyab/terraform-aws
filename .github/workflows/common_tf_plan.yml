@@ -126,4 +126,9 @@ jobs:
           git diff
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
+<<<<<<< HEAD
           git push origin ${{ github.ref }}
+=======
+          git push origin ${{ github.ref }}
+        continue-on-error: true
+>>>>>>> main
