@@ -6,7 +6,12 @@ on:
       - main
     paths:
       - "create-ec2-instance/prod/**"
-  workflow_dispatch:      
+  workflow_dispatch:
+    inputs:
+      retry:
+        description: Retry create a ec2 instance, if it failed.
+        required: true
+        type: boolean
       
 permissions: 
       id-token: write
@@ -40,6 +45,7 @@ jobs:
       # 前回のコミットと差分がなければスキップ
       - name: Check diff
         id: diff
+        if: github.event.inputs.retry != true
         uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
