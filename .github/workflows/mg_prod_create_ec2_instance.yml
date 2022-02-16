@@ -154,6 +154,8 @@ jobs:
               prNumber = process.env.PR_NUM_INPUT;
             }
 
+            console.log(prNumber);
+
             github.rest.issues.createComment({
               issue_number: prNumber,
               owner: context.repo.owner,
