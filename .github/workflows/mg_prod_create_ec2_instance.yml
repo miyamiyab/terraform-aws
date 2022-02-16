@@ -6,14 +6,42 @@ on:
       - main
     paths:
       - "create-ec2-instance/prod/**"
-      
+  workflow_dispatch:
+    inputs:
+      retry:
+        description: Retry create a ec2 instance, if it failed.
+        required: true
+        type: boolean
+      prNumber:
+        description: The pull request number that failed.
+        required: true
+        type: number
+
 permissions: 
       id-token: write
       pull-requests: write
       
 jobs:
+  isPrExsit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the pull request exists.
+        id: chkPr
+        if: github.event.inputs.retry
+        run: |
+          HTTP_STATE=$(curl -s -I -u miyamiyab:${{ secrets.GH_PAT }} \
+              -H "Accept: application/vnd.github.v3+json" \
+              -o /dev/null -w '%{http_code}\n' \
+              https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.inputs.prNumber }})
+          if [ ${HTTP_STATE} -ne 200 ]; then
+            echo "${{ github.repository }}/issues/${{ github.event.inputs.prNumber }} is not found."
+            exit 1
+          fi
+              
   apply:
     runs-on: ubuntu-latest
+    needs: isPrExsit
     timeout-minutes: 5
     strategy:
       matrix:
@@ -45,47 +73,58 @@ jobs:
             ${{ matrix.dir }}/modules/**/*.tf
             ${{ matrix.dir }}/*.tf
       
+      # 前回のコミットと差分があるか、手動リトライの場合のみ実行（以降同じ
       - name: Configure AWS Credentials
-        if: steps.diff.outputs.diff
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
     
       - name: Setup terraform
+        id: setupTf
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         uses: hashicorp/setup-terraform@v1
       
       - name: Terraform fmt
         id: fmt
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         working-directory: ${{ matrix.dir }}
         run: terraform fmt -check
       
       - name: Terraform Init
         id: init
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
       
       - name: Terraform Validate
         id: validate
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         working-directory: ${{ matrix.dir }}
         run: terraform validate -no-color
       
       - name: Terraform Apply
         id: apply
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         working-directory: ${{ matrix.dir }}
         run: terraform apply -auto-approve
       
       - name: Find current pull request
-        uses: jwalton/gh-find-current-pr@v1
         id: findPr
+        if: steps.diff.outputs.diff
+        uses: jwalton/gh-find-current-pr@v1
         with:
           state: all
-      
+
       - name: Comment to pull request
+        id: commentPr
+        if: steps.diff.outputs.diff || github.event.inputs.retry
         uses: actions/github-script@v6
         env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          PLAN: "terraform\n${{ steps.apply.outputs.stdout }}"
           PR_NUM: ${{ steps.findPr.outputs.pr }}
+          PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -103,9 +142,16 @@ jobs:
             </details>
             
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
-              
+            
+            let prNumber;
+            if (!isNaN(parseInt(process.env.PR_NUM))) {
+              prNumber = process.env.PR_NUM;
+            } else if (!isNaN(parseInt(process.env.PR_NUM_INPUT))) {
+              prNumber = process.env.PR_NUM_INPUT;
+            }
+
             github.rest.issues.createComment({
-              issue_number: process.env.PR_NUM,
+              issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
