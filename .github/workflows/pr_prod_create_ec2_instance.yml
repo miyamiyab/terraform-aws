@@ -50,24 +50,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_PAT }}
-    
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-region: ap-northeast-1
-          role-to-assume: arn:aws:iam::166313796795:role/test-gha
-    
-      - name: Check ETag
-        id: chkETag
-        working-directory: ${{ matrix.dir }}
-        run: |
-          mv ./etag-tfstate.txt{,.old}
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
-          if [ $? -ne 0 ]; then
-            echo "The ETag has changed since the last check."
-            exit 1
-          fi
         
       # 前回のコミットと差分がなければスキップ
       - name: Check diff
@@ -79,6 +61,26 @@ jobs:
             ${{ matrix.dir }}/modules/**/*.tf
             ${{ matrix.dir }}/*.tf
     
+      - name: Configure AWS Credentials
+        if: steps.diff.outputs.diff
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+    
+      - name: Check ETag
+        id: chkETag
+        if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
+        run: |
+          mv ./etag-tfstate.txt{,.old}
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
+          if [ $? -ne 0 ]; then
+            echo "The ETag has changed since the last check."
+            exit 1
+          fi
+
       # 常に最新版を使う
       - name: Setup terraform
         if: steps.diff.outputs.diff
