@@ -108,7 +108,7 @@ jobs:
         id: apply
         if: steps.diff.outputs.diff || github.event.inputs.retry
         working-directory: ${{ matrix.dir }}
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -no-color
       
       - name: Find current pull request
         id: findPr
