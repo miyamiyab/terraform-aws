@@ -113,7 +113,6 @@ jobs:
         run: |
           aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
           cat ./etag-tfstate.txt
-        continue-on-error: true
       
       # ETagファイルをコミットする
       # 直前のステップで差分が生じなければエラーになるが受容しスキップする
@@ -127,3 +126,4 @@ jobs:
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
           git push origin ${{ github.ref }}
+        continue-on-error: true
