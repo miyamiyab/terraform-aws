@@ -116,7 +116,7 @@ jobs:
         uses: jwalton/gh-find-current-pr@v1
         with:
           state: all
-          
+
       - name: Comment to pull request
         id: commentPr
         if: steps.diff.outputs.diff || github.event.inputs.retry
@@ -143,10 +143,13 @@ jobs:
             
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
             
-            let prNumber;
-            if (Number.isInteger(Number(process.env.PR_NUM))) {
+            const isNumber = function(value) {
+              return ((typeof value === 'number') && (isFinite(value)));
+            };
+
+            if (isNumber(process.env.PR_NUM)) {
               prNumber = process.env.PR_NUM;
-            } else if (Number.isInteger(Number(process.env.PR_NUM_INPUT))) {
+            } else if (isNumber(process.env.PR_NUM_INPUT)) {
               prNumber = process.env.PR_NUM_INPUT;
             }
 
