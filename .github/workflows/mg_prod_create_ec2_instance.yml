@@ -143,25 +143,16 @@ jobs:
             
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
             
-            let prNumber = 0;
             const isNumber = function(value) {
               return ((typeof value === 'number') && (isFinite(value)));
             };
 
-            if (isNumber(process.env.PR_NUM)) {
-              prNumber = process.env.PR_NUM;
-              console.log("process.env.PR_NUM:" + typeof(process.env.PR_NUM));
-            } else if (isNumber(process.env.PR_NUM_INPUT)) {
-              prNumber = process.env.PR_NUM_INPUT;
-              console.log("process.env.PR_NUM_INPUT:" + typeof(process.env.PR_NUM_INPUT));
-            } else {
-              console.log("process.env.PR_NUM:" + typeof(process.env.PR_NUM));
-              console.log("process.env.PR_NUM_INPUT:" + typeof(process.env.PR_NUM_INPUT));
+            let prNumber;
+            if (isNumber(Number(process.env.PR_NUM))) {
+              prNumber = Number(process.env.PR_NUM);
+            } else if (isNumber(Number(process.env.PR_NUM_INPUT))) {
+              prNumber = Number(process.env.PR_NUM_INPUT);
             }
-
-            console.log(prNumber);
-            console.log(process.env.PR_NUM);
-            console.log(process.env.PR_NUM_INPUT);
 
             github.rest.issues.createComment({
               issue_number: prNumber,
