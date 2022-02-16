@@ -121,12 +121,14 @@ jobs:
         if: steps.diff.outputs.diff
         env:
           PR_NUM: ${{ steps.findPr.outputs.pr }}
+        run: echo ${{ steps.findPr.outputs.pr }}
 
       - name: Set pull request number into env from input.
         id: setPrNumberInput
         if: github.event.inputs.retry
         env:
           PR_NUM: ${{ github.event.inputs.prNumber }}
+        run: echo ${{ github.event.inputs.prNumber }}
       
       - name: Comment to pull request
         id: commentPr
