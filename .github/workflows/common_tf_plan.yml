@@ -118,13 +118,5 @@ jobs:
           git config --local user.name  ${{ github.event.pusher.name }}
           git add ./etag-tfstate.txt
           git commit -m "add: Store ETag of tfstate file"
+          git push origin ${{ github.ref }}
         continue-on-error: true
-      
-      # ETagファイルをoriginにpushする
-      # 既に最新であればエラーとなるが受容しスキップする
-      - name: Push changes of ETag
-        uses: ad-m/github-push-action@master
-        id: pushETag
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
