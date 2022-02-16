@@ -146,7 +146,7 @@ jobs:
             let prNumber;
             if (!isNaN(parseInt(process.env.PR_NUM))) {
               prNumber = process.env.PR_NUM;
-            } else if (!isNaN(parseInt((process.env.PR_NUM_INPUT))) {
+            } else if (!isNaN(parseInt(process.env.PR_NUM_INPUT))) {
               prNumber = process.env.PR_NUM_INPUT;
             }
 
