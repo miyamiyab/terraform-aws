@@ -105,8 +105,7 @@ jobs:
         id: etag
         working-directory: ${{ matrix.dir }}
         run: |
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          cat ./etag-tfstate.txt
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag 
         continue-on-error: true
       
       # ETagファイルをコミットする
