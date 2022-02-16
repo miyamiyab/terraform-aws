@@ -28,4 +28,5 @@ jobs:
       run: |
         curl -s -I -u miyamiyab:${{ secrets.GH_PAT }} \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.inputs.prNumber }}
+            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.inputs.prNumber }} \
+            -o /dev/null -w '%{http_code}\n'
