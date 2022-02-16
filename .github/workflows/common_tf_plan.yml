@@ -1,4 +1,4 @@
-name: COMMON_TF__PLAN
+name: COMMON_TF_PLAN
 
 on:
   push:
