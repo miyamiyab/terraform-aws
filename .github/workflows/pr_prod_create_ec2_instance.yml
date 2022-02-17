@@ -110,7 +110,7 @@ jobs:
 
       - name: Comment to pull request(TFLint)
         id: commentPrTFLint
-        if: steps.diff.outputs.diff
+        if: steps.diff.outputs.diff && failure() && steps.fail_step.outcome == 'failure'
         uses: actions/github-script@v6
         env:
           PR_NUM: ${{ steps.findPr.outputs.pr }}
