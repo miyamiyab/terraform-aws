@@ -1,4 +1,4 @@
-name: COMMON_TF_PLAN
+name: COMMON_TF_TEST
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
       - id: set-dirs
         run: echo "::set-output name=dir::$(ls -d */*/ | jq -R -s -c 'split("\n")[:-1]')"
 
-  plan:
+  commonTest:
     runs-on: ubuntu-latest
     needs: directories
     timeout-minutes: 5
@@ -65,14 +65,17 @@ jobs:
 
       - name: Show version
         if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
         run: tflint --version --config=../../common-tflint.hcl
 
       - name: Init TFLint
         if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
         run: tflint --init --config=../../common-tflint.hcl
 
       - name: Run TFLint
         if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
         run: tflint -f compact --config=../../common-tflint.hcl
     
       # 常に最新版を使う
