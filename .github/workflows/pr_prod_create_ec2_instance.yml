@@ -101,7 +101,7 @@ jobs:
       # 直前のステップで差分が生じなければエラーになるが受容しスキップする
       - name: Commit ETag of tfstate file
         id: commitETag
-        if: steps.diff.outputs.diff  && github.event_name == 'push
+        if: steps.diff.outputs.diff  && github.event_name == 'push'
         working-directory: ${{ matrix.dir }}
         run: |
           git config --local user.email  ${{ github.event.pusher.email }}
