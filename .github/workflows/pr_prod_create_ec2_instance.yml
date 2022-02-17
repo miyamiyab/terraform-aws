@@ -81,6 +81,29 @@ jobs:
             exit 1
           fi
 
+      - name: Cache plugin dir
+        if: steps.diff.outputs.diff
+        uses: actions/cache@v2
+        with:
+          path: ~/.tflint.d/plugins
+          key: ubuntu-latest-tflint-${{ hashFiles('.tflint.hcl') }}
+
+      - name: Setup TFLint
+        if: steps.diff.outputs.diff
+        uses: terraform-linters/setup-tflint@v1
+
+      - name: Show version
+        if: steps.diff.outputs.diff
+        run: tflint --version --config=../../common-tflint.hcl
+
+      - name: Init TFLint
+        if: steps.diff.outputs.diff
+        run: tflint --init --config=../../common-tflint.hcl
+
+      - name: Run TFLint
+        if: steps.diff.outputs.diff
+        run: tflint -f compact --config=../../common-tflint.hcl
+
       # 常に最新版を使う
       - name: Setup terraform
         if: steps.diff.outputs.diff
