@@ -260,6 +260,19 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           working_directory: ${{ matrix.dir }}
       
+      - name: Run tfsec with reviewdog output on the PR
+        if: steps.diff.outputs.diff
+        uses: reviewdog/action-tfsec@master
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          working_directory: ${{ matrix.dir }} # Change working directory
+          level: info # Get more output from reviewdog
+          reporter: github-pr-review # Change reviewdog reporter
+          filter_mode: nofilter # Check all files, not just the diff
+          fail_on_error: true # Fail action if errors are found
+          flags: -tee # Add debug flag to reviewdog
+          tfsec_flags: "" # Optional
+
       - name: send
         env:
           CHATWORK_API_KEY: ${{ secrets.CHATWORK_API_KEY }}
