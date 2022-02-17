@@ -4,8 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - "create-ec2-instance/prod/**"
+  push:
   workflow_dispatch:
     inputs:
       retry:
@@ -44,7 +43,7 @@ jobs:
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: [ create-ec2-instance/prod ]
+        dir: ${{fromJson(needs.directories.outputs.dir)}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -60,6 +59,13 @@ jobs:
           PATTERNS: |
             ${{ matrix.dir }}/modules/**/*.tf
             ${{ matrix.dir }}/*.tf
+      
+      - name: Find current pull request
+        id: findPr
+        if: steps.diff.outputs.diff
+        uses: jwalton/gh-find-current-pr@v1
+        with:
+          state: all
     
       - name: Configure AWS Credentials
         if: steps.diff.outputs.diff
@@ -70,7 +76,7 @@ jobs:
     
       - name: Check ETag
         id: chkETag
-        if: steps.diff.outputs.diff
+        if: steps.diff.outputs.diff && github.event_name == 'pull_request'
         working-directory: ${{ matrix.dir }}
         run: |
           mv ./etag-tfstate.txt{,.old}
@@ -80,6 +86,31 @@ jobs:
             echo "The ETag has changed since the last check."
             exit 1
           fi
+
+      # 各tfstateファイルのETagを出力
+      # tfstateファイルがなければ空ファイルが生成される
+      - name: Store ETag of tfstate file
+        id: storeETag
+        if: steps.diff.outputs.diff  && github.event_name == 'push'
+        working-directory: ${{ matrix.dir }}
+        run: |
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          cat ./etag-tfstate.txt
+      
+      # ETagファイルをコミットする
+      # 直前のステップで差分が生じなければエラーになるが受容しスキップする
+      - name: Commit ETag of tfstate file
+        id: commitETag
+        if: steps.diff.outputs.diff  && github.event_name == 'push
+        working-directory: ${{ matrix.dir }}
+        run: |
+          git config --local user.email  ${{ github.event.pusher.email }}
+          git config --local user.name  ${{ github.event.pusher.name }}
+          git diff
+          git add ./etag-tfstate.txt
+          git commit -m "add: Store ETag of tfstate file"
+          git push origin ${{ github.ref }}
+        continue-on-error: true
 
       - name: Cache plugin dir
         if: steps.diff.outputs.diff
@@ -110,7 +141,7 @@ jobs:
 
       - name: Comment to pull request(TFLint)
         id: commentPrTFLint
-        if: steps.diff.outputs.diff && failure() && steps.fail_step.outcome == 'failure'
+        if: steps.diff.outputs.diff && failure() && steps.fail_step.outcome == 'failure' && ( steps.findPr.outputs.pr || github.event.inputs.prNumber )
         uses: actions/github-script@v6
         env:
           PR_NUM: ${{ steps.findPr.outputs.pr }}
@@ -166,17 +197,10 @@ jobs:
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
-        
-      - name: Find current pull request
-        id: findPr
-        if: steps.diff.outputs.diff
-        uses: jwalton/gh-find-current-pr@v1
-        with:
-          state: all
 
       - name: Comment to pull request(PLAN)
         id: commentPrPlan
-        if: steps.diff.outputs.diff
+        if: steps.diff.outputs.diff && ( steps.findPr.outputs.pr || github.event.inputs.prNumber )
         uses: actions/github-script@v6
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
