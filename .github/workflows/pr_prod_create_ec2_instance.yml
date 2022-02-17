@@ -103,9 +103,36 @@ jobs:
         run: tflint --init --config=../../common-tflint.hcl
 
       - name: Run TFLint
+        id: runTFLint
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: tflint -f compact --config=../../common-tflint.hcl
+
+      - name: Comment to pull request(TFLint)
+        id: commentPrTFLint
+        if: steps.diff.outputs.diff
+        uses: actions/github-script@v6
+        env:
+          PR_NUM: ${{ steps.findPr.outputs.pr }}
+          PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `${{ steps.runTFLint.outputs.stdout }}`;
+            
+            let prNumber;
+            if (!isNaN(parseInt(process.env.PR_NUM))) {
+              prNumber = process.env.PR_NUM;
+            } else if (!isNaN(parseInt(process.env.PR_NUM_INPUT))) {
+              prNumber = process.env.PR_NUM_INPUT;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
 
       # 常に最新版を使う
       - name: Setup terraform
@@ -147,8 +174,8 @@ jobs:
         with:
           state: all
 
-      - name: Comment to pull request
-        id: commentPr
+      - name: Comment to pull request(PLAN)
+        id: commentPrPlan
         if: steps.diff.outputs.diff
         uses: actions/github-script@v6
         env:
