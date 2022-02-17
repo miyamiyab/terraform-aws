@@ -65,14 +65,17 @@ jobs:
 
       - name: Show version
         if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
         run: tflint --version --config=../../common-tflint.hcl
 
       - name: Init TFLint
         if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
         run: tflint --init --config=../../common-tflint.hcl
 
       - name: Run TFLint
         if: steps.diff.outputs.diff
+        working-directory: ${{ matrix.dir }}
         run: tflint -f compact --config=../../common-tflint.hcl
     
       # 常に最新版を使う
