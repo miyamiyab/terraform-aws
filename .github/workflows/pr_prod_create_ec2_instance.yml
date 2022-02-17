@@ -253,10 +253,11 @@ jobs:
 
       - name: tfsec
         uses: aquasecurity/tfsec-pr-commenter-action@v1.0.2
+        if: steps.diff.outputs.diff
         with:
           tfsec_args: --soft-fail
           github_token: ${{ secrets.GH_PAT }}
-          working-directory: ${{ matrix.dir }}
+          working_directory: ${{ matrix.dir }}
       
       - name: send
         env:
