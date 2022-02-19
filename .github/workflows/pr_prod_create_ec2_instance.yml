@@ -145,6 +145,8 @@ jobs:
       - name: Setup TFLint
         if: steps.diff.outputs.diff
         uses: terraform-linters/setup-tflint@v1
+        with:
+          tflint_version: v0.34.1
 
       - name: Show version
         if: steps.diff.outputs.diff
