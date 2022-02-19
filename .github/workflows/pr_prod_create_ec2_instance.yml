@@ -1,14 +1,20 @@
-name: PR_PROD_CREATE_EC2_INSTANCE
+name: COMMON_TF_TEST
 
 on:
   pull_request:
     branches:
+      # PRでmainブランチへマージ時に実行する
       - main
   push:
     branches:
+      # 開発ブランチにpushされた場合に実行する。
       - develop
       - 'feature/issue-*'
+    paths-ignore:
+      # ETagの更新ではワークフローは実行しない
+      - '**/**/etag-tfstate.txt'
   workflow_dispatch:
+    # ワークフローの失敗時などコードに問題がない場合でワークフローのみ再実行したい場合に使う。
     inputs:
       retry:
         description: Retry pull request, if it failed.
@@ -24,6 +30,7 @@ permissions:
       pull-requests: write
       
 jobs:
+  # PRに証跡を残すため、存在しないPRを指定した場合は失敗させる（手動実行時のみ）
   isPrExsit:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -181,17 +188,19 @@ jobs:
               body: output
             })
 
-      # 常に最新版を使う
+      # バージョンの管理はインフラ担当が実施する
       - name: Setup terraform
         if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.6
       
       # フォーマットが正しくなければ失敗させる
       - name: Terraform fmt
         id: fmt
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: terraform fmt -check
+        run: terraform fmt -recursive -check
       
       # 初期化
       # バックエンドは重複しないように動的に設定する
