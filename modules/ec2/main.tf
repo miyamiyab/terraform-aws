@@ -13,7 +13,7 @@ resource "aws_instance" "app_server" {
     Name = "ExampleAppServerInstance"
   }
   root_block_device {
-    volume_size = "20"
+    volume_size = "21"
     volume_type = "gp3"
   }
 }

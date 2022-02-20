@@ -266,7 +266,7 @@ jobs:
             })
       
       - name: Run tfsec with reviewdog output on the PR
-        if: steps.diff.outputs.diff
+        if: steps.diff.outputs.diff && github.event_name == 'pull_request'
         uses: reviewdog/action-tfsec@master
         with:
           github_token: ${{ secrets.GH_PAT }}
