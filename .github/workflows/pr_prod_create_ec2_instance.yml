@@ -221,7 +221,7 @@ jobs:
       # プルリク作成段階でのplanでは想定外の発生は許容せず失敗させる
       - name: Terraform Plan
         id: plan
-        if: steps.diff.outputs.diff
+        if: steps.diff.outputs.diff && !startsWith( ${{ matrix.dir }}, "modules" )
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
 
