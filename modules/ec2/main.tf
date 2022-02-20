@@ -2,6 +2,8 @@ data "aws_ssm_parameter" "aws_al2_ami_id" {
   name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
 }
 
+variable "root_vol_size" {}
+
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ssm_parameter.aws_al2_ami_id.value
   instance_type          = "t3.nano"
@@ -13,7 +15,7 @@ resource "aws_instance" "app_server" {
     Name = "ExampleAppServerInstance"
   }
   root_block_device {
-    volume_size = "21"
+    volume_size = var.root_vol_size
     volume_type = "gp3"
   }
 }
