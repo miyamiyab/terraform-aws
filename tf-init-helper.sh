@@ -8,8 +8,10 @@ function ErrorMsg() {
   echo
   echo "Available argments is below."
   echo
-  echo "--init      Execute terraform init with custom tfstate key."
-  echo "--key-only  Print tfstate key only. "
+  echo "-init               Execute terraform init with custom tfstate key."
+  echo "-migrate-state      Execute terraform init -migrate-state."
+  echo "-reconfigure        Execute terraform init -reconfigure."
+  echo "-key-only           Print tfstate key only. "
   exit 1
 }
 
@@ -22,19 +24,19 @@ REPO=$(git config --get remote.origin.url | awk -F'/' '{print $NF}' | sed -e 's/
 TFSTATE_KEY="${OWNER}/$(pwd | grep -o ${REPO}.*)/terraform.tfstate"
 
 case "$1" in
-  --init)
+  -init)
     terraform init -backend-config="key=${TFSTATE_KEY}"
     ;;
 
-  --migrate)
+  -migrate-state)
     terraform init -migrate-state -backend-config="key=${TFSTATE_KEY}"
     ;;
 
-  --reconfigure)
+  -reconfigure)
     terraform init -reconfigure -backend-config="key=${TFSTATE_KEY}"
     ;;
 
-  --key-only)
+  -key-only)
     echo ${TFSTATE_KEY}
     ;;
 
