@@ -15,7 +15,7 @@ on:
       - '**/**/etag-tfstate.txt'
       # モジュールのみの更新では実行しない。
       - 'modules/**/**'
-      
+
 permissions: 
       id-token: write
       pull-requests: write
