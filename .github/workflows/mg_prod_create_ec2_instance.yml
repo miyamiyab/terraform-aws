@@ -8,10 +8,6 @@ on:
       - "ec2/prod/**"
   workflow_dispatch:
     inputs:
-      retry:
-        description: Retry create a ec2 instance, if merge wf failed.
-        required: true
-        type: boolean
       prNumber:
         description: The pull request number that failed.
         required: true
@@ -28,7 +24,7 @@ jobs:
     steps:
       - name: Check the pull request exists.
         id: chkPr
-        if: github.event.inputs.retry
+        if: github.event_name == 'workflow_dispatch'
         run: |
           HTTP_STATE=$(curl -s -I -u miyamiyab:${{ secrets.GH_PAT }} \
               -H "Accept: application/vnd.github.v3+json" \
@@ -50,6 +46,7 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
       - id: set-dirs
+        if: github.event_name == 'pull_request'
         run: echo "::set-output name=dir::$(ls -d ec2/prod/*/ | jq -R -s -c 'split("\n")[:-1]')"
         
   apply:
@@ -74,17 +71,33 @@ jobs:
     
       - name: Check ETag
         id: chkETag
+        if: github.event_name == 'pull_request'
         working-directory: ${{ matrix.dir }}
         run: |
           mv ./etag-tfstate.txt{,.old}
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
+          if [ $? -ne 0 ]; then
+            echo "The ETag has changed since the last check."
+            exit 1
+          fi
+
+      # workflow_dispatch（手動実行用）
+      - name: Check ETag
+        id: chkETagDispatch
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ github.event.inputs.tfRoot }}
+        run: |
+          mv ./etag-tfstate.txt{,.old}
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
           diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
           if [ $? -ne 0 ]; then
             echo "The ETag has changed since the last check."
             exit 1
           fi
         
-      # 前回のコミットと差分がなければスキップ
+      # push or pull requestが対象。
+      # 前回のコミットと差分がなければスキップ。
       - name: Check diff
         id: diff
         uses: technote-space/get-diff-action@v6
@@ -94,25 +107,31 @@ jobs:
     
       - name: Setup terraform
         id: setupTf
-        if: steps.diff.outputs.diff || github.event.inputs.retry
+        if: steps.diff.outputs.diff || github.event_name == 'workflow_dispatch'
         uses: hashicorp/setup-terraform@v1
-      
-      - name: Terraform fmt
-        id: fmt
-        if: steps.diff.outputs.diff || github.event.inputs.retry
-        working-directory: ${{ matrix.dir }}
-        run: terraform fmt -check
       
       - name: Terraform Init
         id: init
-        if: steps.diff.outputs.diff || github.event.inputs.retry
+        if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}terraform.tfstate"
       
+      - name: Terraform Init
+        id: initDispatch
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ github.event.inputs.tfRoot }}
+        run: terraform init -backend-config="key=${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate"
+      
       - name: Terraform Apply
         id: apply
-        if: steps.diff.outputs.diff || github.event.inputs.retry
+        if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
+        run: terraform apply -auto-approve -no-color
+
+      - name: Terraform Apply
+        id: applyDispatch
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ github.event.inputs.tfRoot }}
         run: terraform apply -auto-approve -no-color
       
       - name: Find current pull request
@@ -124,7 +143,7 @@ jobs:
 
       - name: Comment to pull request
         id: commentPr
-        if: steps.diff.outputs.diff || github.event.inputs.retry
+        if: steps.diff.outputs.diff || github.event_name == 'workflow_dispatch'
         uses: actions/github-script@v6
         env:
           APPLY: "terraform\n${{ steps.apply.outputs.stdout }}"
