@@ -18,12 +18,8 @@ on:
   workflow_dispatch:
     # ワークフローの失敗時などコードに問題がない場合でワークフローのみ再実行したい場合に使う。
     inputs:
-      isPr:
-        description: Is this PR.
-        required: false
-        type: boolean
       prNumber:
-        description: The pull request number that failed.
+        description: The pull request number is for posting test results. If you try the push event again, do not set the number.
         required: false
         type: number
       
@@ -41,7 +37,7 @@ jobs:
     steps:
       - name: Check the pull request exists.
         id: chkPr
-        if: github.event.inputs.isPr
+        if: github.event.inputs.prNumber > 0
         run: |
           HTTP_STATE=$(curl -s -I -u miyamiyab:${{ secrets.GH_PAT }} \
               -H "Accept: application/vnd.github.v3+json" \
