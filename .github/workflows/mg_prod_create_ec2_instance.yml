@@ -12,8 +12,7 @@ on:
         description: The pull request number that failed.
         required: true
         type: number
-    tfRoot:
-      prNumber:
+      tfRoot:
         description: Working directory to run terraform cli.
         required: true
         type: string
