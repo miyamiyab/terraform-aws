@@ -13,7 +13,7 @@ on:
         required: true
         type: number
       tfRoot:
-        description: Working directory to run terraform cli.
+        description: Working directory to run terraform cli. The first slash should be omitted and the last slash should be added.(e.g. path/to/dir/)
         required: true
         type: string
 
