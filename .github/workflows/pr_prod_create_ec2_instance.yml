@@ -12,7 +12,7 @@ on:
       - 'feature/issue-*'
     paths-ignore:
       # ETagの更新ではワークフローは実行しない
-      - '**/**/etag-tfstate.txt'
+      - '**/**/**/etag-tfstate.txt'
       # モジュールのみの更新では実行しない。
       - 'modules/**/**'
 
