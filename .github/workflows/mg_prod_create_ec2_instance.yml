@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       retry:
-        description: Retry create a ec2 instance, if it failed.
+        description: Retry create a ec2 instance, if merge wf failed.
         required: true
         type: boolean
       prNumber:
@@ -38,14 +38,28 @@ jobs:
             echo "${{ github.repository }}/issues/${{ github.event.inputs.prNumber }} is not found."
             exit 1
           fi
-              
+  # 複数のディレクトリに対して効率よくプロビジョニングを行うため、対象ディレクトリを抽出する。
+  # 使用時は、並列に実行されるテンプレートが競合しないことを事前に確認すること。
+  directories:
+    runs-on: ubuntu-latest
+    outputs:
+      dir: ${{ steps.set-dirs.outputs.dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
+      - id: set-dirs
+        run: echo "::set-output name=dir::$(ls -d ec2/prod/*/ | jq -R -s -c 'split("\n")[:-1]')"
+        
   apply:
     runs-on: ubuntu-latest
-    needs: isPrExsit
+    needs:  [ isPrExsit, directories ]
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: [ ec2/prod ]
+        # ["ec2/prod/app_server/","vpc/prod/subnet/"]
+        dir: ${{fromJson(needs.directories.outputs.dir)}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -76,8 +90,7 @@ jobs:
         uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
-            ${{ matrix.dir }}/modules/**/*.tf
-            ${{ matrix.dir }}/*.tf
+            ${{ matrix.dir }}*.tf
     
       - name: Setup terraform
         id: setupTf
@@ -94,7 +107,7 @@ jobs:
         id: init
         if: steps.diff.outputs.diff || github.event.inputs.retry
         working-directory: ${{ matrix.dir }}
-        run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
+        run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}terraform.tfstate"
       
       - name: Terraform Apply
         id: apply
