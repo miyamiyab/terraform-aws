@@ -172,8 +172,8 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: tflint -f compact --config=../../common-tflint.hcl
 
-        # TFLintで問題が検出され、PRが存在する場合、結果をPRに投稿する。
-        - name: Comment to pull request(TFLint)
+      # TFLintで問題が検出され、PRが存在する場合、結果をPRに投稿する。
+      - name: Comment to pull request(TFLint)
         id: commentPrTFLint
         if: steps.diff.outputs.diff && failure() && steps.fail_step.outcome == 'failure' && ( steps.findPr.outputs.pr || github.event.inputs.prNumber )
         uses: actions/github-script@v6
@@ -221,7 +221,6 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
 
-      # プルリク作成段階でのplanでは想定外の発生は許容せず失敗させる
       - name: Terraform Plan
         id: plan
         if: steps.diff.outputs.diff
