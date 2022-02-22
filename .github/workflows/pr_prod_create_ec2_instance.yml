@@ -24,7 +24,7 @@ on:
         type: boolean
       prNumber:
         description: The pull request number that failed.
-        required: true
+        required: false
         type: number
       
 permissions: 
