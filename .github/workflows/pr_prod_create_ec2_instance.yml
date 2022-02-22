@@ -16,8 +16,8 @@ on:
   workflow_dispatch:
     # ワークフローの失敗時などコードに問題がない場合でワークフローのみ再実行したい場合に使う。
     inputs:
-      retry:
-        description: Retry pull request, if it failed.
+      isPr:
+        description: Is this PR.
         required: true
         type: boolean
       prNumber:
@@ -30,14 +30,16 @@ permissions:
       pull-requests: write
       
 jobs:
-  # PRに証跡を残すため、存在しないPRを指定した場合は失敗させる（手動実行時のみ）
+  # 手動実行のみ。
+  # PRに証跡を残すため、存在しないPRを指定した場合は失敗させる。
+  # PRではない場合はスキップ。
   isPrExsit:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Check the pull request exists.
         id: chkPr
-        if: github.event.inputs.retry
+        if: github.event.inputs.isPr
         run: |
           HTTP_STATE=$(curl -s -I -u miyamiyab:${{ secrets.GH_PAT }} \
               -H "Accept: application/vnd.github.v3+json" \
@@ -221,7 +223,7 @@ jobs:
       # プルリク作成段階でのplanでは想定外の発生は許容せず失敗させる
       - name: Terraform Plan
         id: plan
-        if: steps.diff.outputs.diff && !startsWith( ${{ matrix.dir }}, "modules" )
+        if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
 
