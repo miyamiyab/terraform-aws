@@ -50,7 +50,6 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
       - id: set-dirs
-        if: github.event_name == 'push'
         run: echo "::set-output name=dir::$(ls -d ec2/prod/*/ | jq -R -s -c 'split("\n")[:-1]')"
         
   apply:
