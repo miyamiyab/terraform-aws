@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "create-ec2-instance/prod/**"
+      - "ec2/prod/**"
   workflow_dispatch:
     inputs:
       retry:
@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 5
     strategy:
       matrix:
-        dir: [ create-ec2-instance/prod ]
+        dir: [ ec2/prod ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -95,12 +95,6 @@ jobs:
         if: steps.diff.outputs.diff || github.event.inputs.retry
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
-      
-      - name: Terraform Validate
-        id: validate
-        if: steps.diff.outputs.diff || github.event.inputs.retry
-        working-directory: ${{ matrix.dir }}
-        run: terraform validate -no-color
       
       - name: Terraform Apply
         id: apply
