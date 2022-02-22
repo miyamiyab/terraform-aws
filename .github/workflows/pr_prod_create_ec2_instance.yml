@@ -222,7 +222,7 @@ jobs:
       
       - name: Terraform Plan
         id: plan
-        if: steps.diff.outputs.diff && !startsWith( ${{ matrix.dir }}, "modules" )
+        if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform plan -no-color
 
