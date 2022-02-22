@@ -15,38 +15,12 @@ on:
       - '**/**/etag-tfstate.txt'
       # モジュールのみの更新では実行しない。
       - 'modules/**/**'
-  workflow_dispatch:
-    # ワークフローの失敗時などコードに問題がない場合でワークフローのみ再実行したい場合に使う。
-    inputs:
-      prNumber:
-        description: The pull request number is for posting test results. If you try the push event again, do not set the number.
-        required: false
-        type: number
-      
+
 permissions: 
       id-token: write
       pull-requests: write
       
 jobs:
-  # 手動実行のみ。
-  # PRに証跡を残すため、存在しないPRを指定した場合は失敗させる。
-  # PRではない場合はスキップ。
-  isPrExsit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Check the pull request exists.
-        id: chkPr
-        if: github.event.inputs.prNumber > 0
-        run: |
-          HTTP_STATE=$(curl -s -I -u miyamiyab:${{ secrets.GH_PAT }} \
-              -H "Accept: application/vnd.github.v3+json" \
-              -o /dev/null -w '%{http_code}\n' \
-              https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.inputs.prNumber }})
-          if [ ${HTTP_STATE} -ne 200 ]; then
-            echo "${{ github.repository }}/issues/${{ github.event.inputs.prNumber }} is not found."
-            exit 1
-          fi
   # 複数のディレクトリに対して効率よくテストを行うため、対象ディレクトリを抽出する。
   directories:
     runs-on: ubuntu-latest
@@ -62,7 +36,7 @@ jobs:
 
   commonTest:
     runs-on: ubuntu-latest
-    needs: [ isPrExsit, directories ]
+    needs: directories
     timeout-minutes: 5
     strategy:
       matrix:
@@ -81,7 +55,7 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PATTERNS: |
-            ${{ matrix.dir }}/*.tf
+            ${{ matrix.dir }}*.tf
       
       # terraform plan等の実行結果を投稿する先となるPRを検索
       - name: Find current pull request
@@ -98,6 +72,7 @@ jobs:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
  
+      # PR時のみ。
       # tfstateファイルがテスト～承認までの間に変更されていないことを担保するため、s3に保存したtfstateファイルのETagを利用する。
       # ETagに差があれば、ワークフローを失敗させる。
       # aws cli のオプションにETagを付与してhttpで変更を確認する方法は、出力のパース等が必要なため、単純なファイル比較とする。
@@ -114,8 +89,10 @@ jobs:
             exit 1
           fi
 
+      # push時のみ。
       # 各tfstateファイルのETagを出力。
       # tfstateファイルがなければ（新規）空ファイルが生成される。
+      # ETagファイルをコミットする。
       - name: Store ETag of tfstate file
         id: storeETag
         if: steps.diff.outputs.diff  && github.event_name == 'push'
@@ -123,21 +100,14 @@ jobs:
         run: |
           aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
           cat ./etag-tfstate.txt
-      
-      # ETagファイルをコミットする。
-      # 直前のステップで差分が生じなければエラーになるが受容しスキップする。
-      - name: Commit ETag of tfstate file
-        id: commitETag
-        if: steps.diff.outputs.diff  && github.event_name == 'push'
-        working-directory: ${{ matrix.dir }}
-        run: |
-          git config --local user.email  ${{ github.event.pusher.email }}
-          git config --local user.name  ${{ github.event.pusher.name }}
-          git diff
-          git add ./etag-tfstate.txt
-          git commit -m "add: Store ETag of tfstate file"
-          git push origin ${{ github.ref }}
-        continue-on-error: true
+          changes=$(git status -s | wc -l)
+          if [ $changes -gt 0 ]; then
+            git config --local user.email  ${{ github.event.pusher.email }}
+            git config --local user.name  ${{ github.event.pusher.name }}
+            git add ./etag-tfstate.txt
+            git commit -m "add: Store ETag of tfstate file"
+            git push origin ${{ github.ref }}
+          fi
 
       - name: Cache plugin dir
         if: steps.diff.outputs.diff
