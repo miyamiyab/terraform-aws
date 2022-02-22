@@ -20,7 +20,7 @@ on:
     inputs:
       isPr:
         description: Is this PR.
-        required: true
+        required: false
         type: boolean
       prNumber:
         description: The pull request number that failed.
