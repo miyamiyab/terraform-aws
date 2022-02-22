@@ -159,18 +159,18 @@ jobs:
       - name: Show version
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: tflint --version --config=../../common-tflint.hcl
+        run: tflint --version --config=../../../common-tflint.hcl
 
       - name: Init TFLint
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: tflint --init --config=../../common-tflint.hcl
+        run: tflint --init --config=../../../common-tflint.hcl
 
       - name: Run TFLint
         id: runTFLint
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: tflint -f compact --config=../../common-tflint.hcl
+        run: tflint -f compact --config=../../../common-tflint.hcl
 
       # TFLintで問題が検出され、PRが存在する場合、結果をPRに投稿する。
       - name: Comment to pull request(TFLint)
