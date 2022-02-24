@@ -30,7 +30,6 @@ jobs:
         id: chkPr
         if: github.event_name == 'workflow_dispatch'
         run: |
-          echo ${{ github.event.sender.login }}
           HTTP_STATE=$(curl -s -I -u ${{ github.event.sender.login }}:${{ secrets.GH_PAT }} \
               -H "Accept: application/vnd.github.v3+json" \
               -o /dev/null -w '%{http_code}\n' \
