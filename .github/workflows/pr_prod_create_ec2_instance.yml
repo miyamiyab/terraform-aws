@@ -8,7 +8,7 @@ on:
   push:
     branches-ignore:
       # 開発ブランチにpushされた場合に実行する。
-      - main
+      - '**/issue-[0-9]+'
     paths-ignore:
       # ETagの更新ではワークフローは実行しない
       - '**/**/**/etag-tfstate.txt'
