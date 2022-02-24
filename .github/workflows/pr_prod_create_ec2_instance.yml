@@ -20,9 +20,27 @@ permissions:
       pull-requests: write
       
 jobs:
+  isIssueExsit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check if the issue exists.
+        id: chkIssue
+        if: github.event_name == 'push'
+        run: |
+          export ISSUE_NUM=$(echo ${{ github.event.ref }} | awk -F'/' '{print $NF}' | sed -r -e 's/^issue-([0-9]+)$/\1/')
+          HTTP_STATE=$(curl -s -I -u ${{ github.event.sender.login }}:${{ secrets.GH_PAT }} \
+              -H "Accept: application/vnd.github.v3+json" \
+              -o /dev/null -w '%{http_code}\n' \
+              https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUM})
+          if [ ${HTTP_STATE} -ne 200 ]; then
+            echo "${{ github.repository }}/issues/${ISSUE_NUM} is not found."
+            exit 1
+          fi
   # 複数のディレクトリに対して効率よくテストを行うため、対象ディレクトリを抽出する。
   directories:
     runs-on: ubuntu-latest
+    needs: isIssueExsit
     outputs:
       dir: ${{ steps.set-dirs.outputs.dir }}
     steps:
