@@ -6,7 +6,7 @@ on:
       # PRでmainブランチへマージ時に実行する。
       - main
   push:
-    branches-ignore:
+    branches:
       # 開発ブランチにpushされた場合に実行する。
       - '**/issue-[0-9]+'
     paths-ignore:
