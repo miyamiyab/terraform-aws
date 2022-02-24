@@ -12,6 +12,10 @@ on:
         description: The pull request number that failed.
         required: true
         type: number
+      tfRoot:
+        description: Working directory to run terraform cli. The first slash should be omitted and the last slash should be added.(e.g. path/to/dir/)
+        required: true
+        type: string
 
 permissions: 
       id-token: write
@@ -70,7 +74,7 @@ jobs:
         with:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
-    
+
       # push or pull requestが対象。
       # 前回のコミットと差分がなければスキップ。
       - name: Check diff
@@ -93,9 +97,23 @@ jobs:
             exit 1
           fi
 
+      # workflow_dispatch（手動実行用）
+      - name: Check ETag
+        id: chkETagDispatch
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ github.event.inputs.tfRoot }}
+        run: |
+          mv ./etag-tfstate.txt{,.old}
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
+          if [ $? -ne 0 ]; then
+            echo "The ETag has changed since the last check."
+            exit 1
+          fi
+    
       - name: Setup terraform
         id: setupTf
-        if: steps.diff.outputs.diff && github.event_name == 'workflow_dispatch'
+        if: steps.diff.outputs.diff || github.event_name == 'workflow_dispatch'
         uses: hashicorp/setup-terraform@v1
       
       - name: Terraform Init
@@ -103,11 +121,23 @@ jobs:
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}terraform.tfstate"
-            
+      
+      - name: Terraform Init(workflow_dispatch)
+        id: initDispatch
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ github.event.inputs.tfRoot }}
+        run: terraform init -backend-config="key=${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate"
+      
       - name: Terraform Apply
         id: apply
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
+        run: terraform apply -auto-approve -no-color
+
+      - name: Terraform Apply(workflow_dispatch)
+        id: applyDispatch
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ github.event.inputs.tfRoot }}
         run: terraform apply -auto-approve -no-color
       
       - name: Find current pull request
