@@ -22,6 +22,8 @@ permissions:
       pull-requests: write
       
 jobs:
+  # このジョブはPR承認後のマージの際に、WFが失敗した後のリトライとして使用することを想定する。
+  # そのため、applyの結果をPRに投稿することを必須とする。
   isPrExsit:
     runs-on: ubuntu-latest
     timeout-minutes: 5
