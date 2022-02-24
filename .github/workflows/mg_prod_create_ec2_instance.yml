@@ -22,6 +22,8 @@ permissions:
       pull-requests: write
       
 jobs:
+  # このジョブはPR承認後のマージの際に、WFが失敗した後のリトライとして使用することを想定する。
+  # そのため、applyの結果をPRに投稿することを必須とする。
   isPrExsit:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -30,7 +32,6 @@ jobs:
         id: chkPr
         if: github.event_name == 'workflow_dispatch'
         run: |
-          echo ${{ github.event.sender.login }}
           HTTP_STATE=$(curl -s -I -u ${{ github.event.sender.login }}:${{ secrets.GH_PAT }} \
               -H "Accept: application/vnd.github.v3+json" \
               -o /dev/null -w '%{http_code}\n' \
