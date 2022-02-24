@@ -6,9 +6,9 @@ on:
       # PRでmainブランチへマージ時に実行する。
       - main
   push:
-    branches:
+    branches-ignore:
       # 開発ブランチにpushされた場合に実行する。
-      - 'feature/issue-*'
+      - main
     paths-ignore:
       # ETagの更新ではワークフローは実行しない
       - '**/**/**/etag-tfstate.txt'
