@@ -1,4 +1,4 @@
-name: MG_PROD_CREATE_EC2_INSTANCE
+name: MG_CREATE_EC2_INSTANCE
 
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
       - id: set-dirs
-        run: echo "::set-output name=dir::$(ls -d ec2/prod/*/ | jq -R -s -c 'split("\n")[:-1]')"
+        run: echo "::set-output name=dir::$(ls -d ec2/*/*/ | jq -R -s -c 'split("\n")[:-1]')"
         
   apply:
     runs-on: ubuntu-latest
