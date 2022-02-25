@@ -6,9 +6,10 @@ terraform {
     }
   }
   backend "s3" {
-    bucket  = "miyashita-tfstate"
-    region  = "ap-northeast-1"
-    encrypt = true
+    bucket         = "miyashita-tfstate"
+    region         = "ap-northeast-1"
+    encrypt        = true
+    dynamodb_table = "terraform_state_lock"
   }
   required_version = "~> 1.1.6"
 }
