@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - "ec2/prod/**/main.tf"
-      - "ec2/prod/**/variables.tf"
+      - "ec2/**/**/main.tf"
+      - "ec2/**/**/variables.tf"
   workflow_dispatch:
     inputs:
       prNumber:
