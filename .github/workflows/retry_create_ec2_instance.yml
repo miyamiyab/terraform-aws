@@ -1,0 +1,122 @@
+name: RETRY_CREATE_EC2_INSTANCE
+
+on:
+  workflow_dispatch:
+    inputs:
+      prNumber:
+        description: The pull request number that failed.
+        required: true
+        type: number
+      tfRoot:
+        description: Working directory to run terraform cli. The first slash should be omitted and the last slash should be added.(e.g. path/to/dir/)
+        required: true
+        type: string
+
+permissions: 
+      id-token: write
+      pull-requests: write
+      
+jobs:
+  # このジョブはPR承認後のマージの際に、WFが失敗した後のリトライとして使用することを想定する。
+  # そのため、applyの結果をPRに投稿することを必須とする。
+  isPrExsit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check if the pull request exists.
+        run: |
+          HTTP_STATE=$(curl -s -I -u ${{ github.event.sender.login }}:${{ secrets.GH_PAT }} \
+              -H "Accept: application/vnd.github.v3+json" \
+              -o /dev/null -w '%{http_code}\n' \
+              https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.inputs.prNumber }})
+          if [ ${HTTP_STATE} -ne 200 ]; then
+            echo "${{ github.repository }}/issues/${{ github.event.inputs.prNumber }} is not found."
+            exit 1
+          fi
+        
+  apply:
+    runs-on: ubuntu-latest
+    needs: isPrExsit
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+          
+      # workflow_dispatch（手動実行用）
+      - name: Check ETag
+        id: chkETagDispatch
+        working-directory: ${{ github.event.inputs.tfRoot }}
+        run: |
+          mv ./etag-tfstate.txt{,.old}
+          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
+          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
+          if [ $? -ne 0 ]; then
+            echo "The ETag has changed since the last check."
+            exit 1
+          fi
+    
+      - name: Setup terraform
+        id: setupTf
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Init
+        id: initDispatch
+        working-directory: ${{ github.event.inputs.tfRoot }}
+        run: terraform init -backend-config="key=${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate"
+
+      - name: Terraform Apply
+        id: applyDispatch
+        working-directory: ${{ github.event.inputs.tfRoot }}
+        run: terraform apply -auto-approve -no-color
+      
+      - name: Find current pull request
+        id: findPr
+        uses: jwalton/gh-find-current-pr@v1
+        with:
+          state: all
+
+      - name: Comment to pull request
+        id: commentPr
+        uses: actions/github-script@v6
+        env:
+          APPLY: "terraform\n${{ steps.apply.outputs.stdout }}"
+          PR_NUM: ${{ steps.findPr.outputs.pr }}
+          PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.initDispatch.outcome }}\`
+            #### Terraform Apply 📖\`${{ steps.applyDispatch.outcome }}\`
+            
+            <details><summary>Show Apply</summary>
+            
+            \`\`\`\n
+            ${process.env.APPLY}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ github.event.inputs.tfRoot }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+            let prNumber;
+            if (!isNaN(parseInt(process.env.PR_NUM))) {
+              prNumber = process.env.PR_NUM;
+            } else if (!isNaN(parseInt(process.env.PR_NUM_INPUT))) {
+              prNumber = process.env.PR_NUM_INPUT;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
