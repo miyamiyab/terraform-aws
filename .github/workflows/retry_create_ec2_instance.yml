@@ -88,7 +88,6 @@ jobs:
         uses: actions/github-script@v6
         env:
           APPLY: "terraform\n${{ steps.apply.outputs.stdout }}"
-          PR_NUM: ${{ steps.findPr.outputs.pr }}
           PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -107,15 +106,8 @@ jobs:
             
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ github.event.inputs.tfRoot }}\`, Workflow: \`${{ github.workflow }}\`*`;
             
-            let prNumber;
-            if (!isNaN(parseInt(process.env.PR_NUM))) {
-              prNumber = process.env.PR_NUM;
-            } else if (!isNaN(parseInt(process.env.PR_NUM_INPUT))) {
-              prNumber = process.env.PR_NUM_INPUT;
-            }
-
             github.rest.issues.createComment({
-              issue_number: prNumber,
+              issue_number: process.env.PR_NUM_INPUT,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
