@@ -74,10 +74,19 @@ jobs:
         with:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
-    
+
+      # push or pull requestが対象。
+      # 前回のコミットと差分がなければスキップ。
+      - name: Check diff
+        id: diff
+        uses: technote-space/get-diff-action@v6
+        with:
+          PATTERNS: |
+            ${{ matrix.dir }}*.tf
+
       - name: Check ETag
         id: chkETag
-        if: github.event_name == 'push'
+        if: steps.diff.outputs.diff && github.event_name == 'push'
         working-directory: ${{ matrix.dir }}
         run: |
           mv ./etag-tfstate.txt{,.old}
@@ -101,15 +110,6 @@ jobs:
             echo "The ETag has changed since the last check."
             exit 1
           fi
-        
-      # push or pull requestが対象。
-      # 前回のコミットと差分がなければスキップ。
-      - name: Check diff
-        id: diff
-        uses: technote-space/get-diff-action@v6
-        with:
-          PATTERNS: |
-            ${{ matrix.dir }}*.tf
     
       - name: Setup terraform
         id: setupTf
@@ -122,7 +122,7 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}terraform.tfstate"
       
-      - name: Terraform Init
+      - name: Terraform Init(workflow_dispatch)
         id: initDispatch
         if: github.event_name == 'workflow_dispatch'
         working-directory: ${{ github.event.inputs.tfRoot }}
@@ -134,7 +134,7 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform apply -auto-approve -no-color
 
-      - name: Terraform Apply
+      - name: Terraform Apply(workflow_dispatch)
         id: applyDispatch
         if: github.event_name == 'workflow_dispatch'
         working-directory: ${{ github.event.inputs.tfRoot }}
@@ -160,8 +160,9 @@ jobs:
           script: |
             const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
             #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outputs.stdout }}\`
             #### Terraform Apply 📖\`${{ steps.apply.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.initDispatch.outcome }}\`
+            #### Terraform Apply 📖\`${{ steps.applyDispatch.outcome }}\`
             
             <details><summary>Show Apply</summary>
             
