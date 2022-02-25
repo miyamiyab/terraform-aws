@@ -1,14 +1,6 @@
 name: test
 
 on:
-  push:
-  workflow_dispatch:
-    inputs:
-      prNumber:
-        description: The pull request number that failed.
-        required: true
-        type: number
-      
 jobs:
   plan:
     name: Plan
