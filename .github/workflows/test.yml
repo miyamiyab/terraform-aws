@@ -2,8 +2,6 @@ name: test
 
 on:
   push:
-    branches:
-      - develop
   workflow_dispatch:
     inputs:
       prNumber:
