@@ -7,45 +7,16 @@ on:
     paths:
       - "ec2/**/**/main.tf"
       - "ec2/**/**/variables.tf"
-  workflow_dispatch:
-    inputs:
-      prNumber:
-        description: The pull request number that failed.
-        required: true
-        type: number
-      tfRoot:
-        description: Working directory to run terraform cli. The first slash should be omitted and the last slash should be added.(e.g. path/to/dir/)
-        required: true
-        type: string
 
 permissions: 
       id-token: write
       pull-requests: write
       
 jobs:
-  # このジョブはPR承認後のマージの際に、WFが失敗した後のリトライとして使用することを想定する。
-  # そのため、applyの結果をPRに投稿することを必須とする。
-  isPrExsit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Check if the pull request exists.
-        id: chkPr
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          HTTP_STATE=$(curl -s -I -u ${{ github.event.sender.login }}:${{ secrets.GH_PAT }} \
-              -H "Accept: application/vnd.github.v3+json" \
-              -o /dev/null -w '%{http_code}\n' \
-              https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.inputs.prNumber }})
-          if [ ${HTTP_STATE} -ne 200 ]; then
-            echo "${{ github.repository }}/issues/${{ github.event.inputs.prNumber }} is not found."
-            exit 1
-          fi
   # 複数のディレクトリに対して効率よくプロビジョニングを行うため、対象ディレクトリを抽出する。
   # 使用時は、並列に実行されるテンプレートが競合しないことを事前に確認すること。
   directories:
     runs-on: ubuntu-latest
-    needs: isPrExsit
     outputs:
       dir: ${{ steps.set-dirs.outputs.dir }}
     steps:
@@ -97,24 +68,10 @@ jobs:
             echo "The ETag has changed since the last check."
             exit 1
           fi
-
-      # workflow_dispatch（手動実行用）
-      - name: Check ETag
-        id: chkETagDispatch
-        if: github.event_name == 'workflow_dispatch'
-        working-directory: ${{ github.event.inputs.tfRoot }}
-        run: |
-          mv ./etag-tfstate.txt{,.old}
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
-          if [ $? -ne 0 ]; then
-            echo "The ETag has changed since the last check."
-            exit 1
-          fi
     
       - name: Setup terraform
         id: setupTf
-        if: steps.diff.outputs.diff || github.event_name == 'workflow_dispatch'
+        if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
       
       - name: Terraform Init
@@ -123,22 +80,10 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}terraform.tfstate"
       
-      - name: Terraform Init(workflow_dispatch)
-        id: initDispatch
-        if: github.event_name == 'workflow_dispatch'
-        working-directory: ${{ github.event.inputs.tfRoot }}
-        run: terraform init -backend-config="key=${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate"
-      
       - name: Terraform Apply
         id: apply
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: terraform apply -auto-approve -no-color
-
-      - name: Terraform Apply(workflow_dispatch)
-        id: applyDispatch
-        if: github.event_name == 'workflow_dispatch'
-        working-directory: ${{ github.event.inputs.tfRoot }}
         run: terraform apply -auto-approve -no-color
       
       - name: Find current pull request
@@ -150,20 +95,17 @@ jobs:
 
       - name: Comment to pull request
         id: commentPr
-        if: steps.diff.outputs.diff || github.event_name == 'workflow_dispatch'
+        if: steps.diff.outputs.diff
         uses: actions/github-script@v6
         env:
           APPLY: "terraform\n${{ steps.apply.outputs.stdout }}"
           PR_NUM: ${{ steps.findPr.outputs.pr }}
-          PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
             #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Apply 📖\`${{ steps.apply.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.initDispatch.outcome }}\`
-            #### Terraform Apply 📖\`${{ steps.applyDispatch.outcome }}\`
             
             <details><summary>Show Apply</summary>
             
@@ -175,15 +117,8 @@ jobs:
             
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ matrix.dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
             
-            let prNumber;
-            if (!isNaN(parseInt(process.env.PR_NUM))) {
-              prNumber = process.env.PR_NUM;
-            } else if (!isNaN(parseInt(process.env.PR_NUM_INPUT))) {
-              prNumber = process.env.PR_NUM_INPUT;
-            }
-
             github.rest.issues.createComment({
-              issue_number: prNumber,
+              issue_number: process.env.PR_NUM,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
