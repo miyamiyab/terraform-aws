@@ -12,8 +12,6 @@ on:
     paths-ignore:
       # ETagの更新ではワークフローは実行しない
       - '**/**/**/etag-tfstate.txt'
-      # モジュールのみの更新では実行しない。
-      - 'modules/**/**'
 
 permissions: 
       id-token: write
@@ -49,7 +47,9 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
       - id: set-dirs
-        run: echo "::set-output name=dir::$(ls -d */*/*/ | jq -R -s -c 'split("\n")[:-1]')"
+        run: |
+          export EXLD_DIR="modules" # 複数のディレクトリを対象外にしたい場合はパイプで区切る
+          echo "::set-output name=dir::$(ls -d */*/*/ | grep -E -v $EXLD_DIR | jq -R -s -c 'split("\n")[:-1]')"
 
   commonTest:
     runs-on: ubuntu-latest
