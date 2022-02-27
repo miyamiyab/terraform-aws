@@ -50,9 +50,10 @@ jobs:
         uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_PAT }}
-      - id: set-dirs
+      - name: Extract target directories.
+        id: set-dirs
         run: |
-          export EXLD_DIR="modules|" # 複数のディレクトリを対象外にしたい場合はパイプで区切る
+          export EXLD_DIR="modules" # 複数のディレクトリを対象外にしたい場合はパイプで区切る
           echo "::set-output name=dir::$(ls -d */*/*/ | grep -E -v $EXLD_DIR | jq -R -s -c 'split("\n")[:-1]')"
 
   commonTest:
