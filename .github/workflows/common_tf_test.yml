@@ -1,16 +1,20 @@
 name: COMMON_TF_TEST
 
 on:
+  # PRとpushで同様のテストを行うが、同じWFで定義することでそれぞれの更新漏れを防ぐ。
   pull_request:
     branches:
       # PRでmainブランチへマージ時に実行する。
       - main
+    types: [opened, synchronize]
+      # - opend: PR作成時
+      # - synchronize: PR作成後のpush
   push:
     branches:
       # 開発ブランチにpushされた場合に実行する。
       - '**/issue-[0-9]+'
     paths-ignore:
-      # ETagの更新ではワークフローは実行しない
+      # ETagの更新ではワークフローは実行しない。push,PRの度に+1回WFが実行されるため。
       - '**/**/**/etag-tfstate.txt'
 
 permissions: 
@@ -48,7 +52,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
       - id: set-dirs
         run: |
-          export EXLD_DIR="modules" # 複数のディレクトリを対象外にしたい場合はパイプで区切る
+          export EXLD_DIR="modules|" # 複数のディレクトリを対象外にしたい場合はパイプで区切る
           echo "::set-output name=dir::$(ls -d */*/*/ | grep -E -v $EXLD_DIR | jq -R -s -c 'split("\n")[:-1]')"
 
   commonTest:
@@ -65,7 +69,7 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
         
-      # ルートディレクトリの.tfファイルに、前回のコミットと差分がなければスキップ
+      # .tfファイルに、前回のコミットと差分がなければスキップ。.github/やその他ファイルの変更は対象外とする。
       - name: Check diff
         id: diff
         uses: technote-space/get-diff-action@v4.0.2
@@ -73,6 +77,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PATTERNS: |
             ${{ matrix.dir }}*.tf
+            modules/**/*.tf
       
       # terraform plan等の実行結果を投稿する先となるPRを検索
       - name: Find current pull request
@@ -158,11 +163,10 @@ jobs:
       # TFLintで問題が検出され、PRが存在する場合、結果をPRに投稿する。
       - name: Comment to pull request(TFLint)
         id: commentPrTFLint
-        if: steps.diff.outputs.diff && failure() && steps.fail_step.outcome == 'failure' && ( steps.findPr.outputs.pr || github.event.inputs.prNumber )
+        if: steps.diff.outputs.diff && failure() && steps.fail_step.outcome == 'failure' && steps.findPr.outputs.pr
         uses: actions/github-script@v6
         env:
           PR_NUM: ${{ steps.findPr.outputs.pr }}
-          PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -202,7 +206,7 @@ jobs:
         id: init
         if: steps.diff.outputs.diff
         working-directory: ${{ matrix.dir }}
-        run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}/terraform.tfstate"
+        run: terraform init -backend-config="key=${{ github.repository }}/${{ matrix.dir }}terraform.tfstate"
 
       - name: Terraform Plan
         id: plan
@@ -213,12 +217,11 @@ jobs:
       # planで問題が検出され、PRが存在する場合、結果をPRに投稿する。
       - name: Comment to pull request(PLAN)
         id: commentPrPlan
-        if: steps.diff.outputs.diff && ( steps.findPr.outputs.pr || github.event.inputs.prNumber )
+        if: steps.diff.outputs.diff && steps.findPr.outputs.pr
         uses: actions/github-script@v6
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
           PR_NUM: ${{ steps.findPr.outputs.pr }}
-          PR_NUM_INPUT: ${{ github.event.inputs.prNumber }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
