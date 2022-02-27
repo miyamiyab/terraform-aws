@@ -1,4 +1,4 @@
-name: MG_CREATE_EC2_INSTANCE
+name: CREATE_EC2_INSTANCE
 
 on:
   push:
