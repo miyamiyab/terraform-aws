@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+  push:
       
 jobs:
   plan:
@@ -14,4 +15,5 @@ jobs:
       env:
         INFO: ${{ toJson(github.event) }}
       run: |
+        echo ${{ github.event_name }}
         echo "$INFO"
