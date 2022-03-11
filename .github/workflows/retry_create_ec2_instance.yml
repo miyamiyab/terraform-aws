@@ -50,19 +50,6 @@ jobs:
           aws-region: ap-northeast-1
           role-to-assume: arn:aws:iam::166313796795:role/test-gha
           
-      # workflow_dispatch（手動実行用）
-      - name: Check ETag
-        id: chkETagDispatch
-        working-directory: ${{ github.event.inputs.tfRoot }}
-        run: |
-          mv ./etag-tfstate.txt{,.old}
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ github.event.inputs.tfRoot }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
-          if [ $? -ne 0 ]; then
-            echo "The ETag has changed since the last check."
-            exit 1
-          fi
-    
       - name: Setup terraform
         id: setupTf
         uses: hashicorp/setup-terraform@v1
