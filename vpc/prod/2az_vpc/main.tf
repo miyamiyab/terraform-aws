@@ -15,5 +15,5 @@ resource "aws_vpc" "my_vpc" {
 }
 
 output "vpc_info" {
-    value = aws_vpc.my_vpc.id
+  value = aws_vpc.my_vpc.id
 }
