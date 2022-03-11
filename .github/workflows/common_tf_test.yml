@@ -121,17 +121,13 @@ jobs:
         if: steps.diff.outputs.diff  && github.event_name == 'push'
         working-directory: ${{ matrix.dir }}
         run: |
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          cat ./etag-tfstate.txt
-          changes=$(git status -s | wc -l)
-          if [ $changes -gt 0 ]; then
-            git config --local user.email  ${{ github.event.pusher.email }}
-            git config --local user.name  ${{ github.event.pusher.name }}
-            git add ./etag-tfstate.txt
-            git commit -m "add: Store ETag of tfstate file"
-            git push origin ${{ github.ref }}
+          etag=$(aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag)
+          if [ $etag = "" ]; then
+            etag="null"
           fi
-
+          aws s3api put-object-tagging --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate \
+          --tagging '{"TagSet": [{"Key":"${{ github.ref }}","Value":"$etag"}]}'
+          
       - name: Cache plugin dir
         if: steps.diff.outputs.diff
         uses: actions/cache@v2
