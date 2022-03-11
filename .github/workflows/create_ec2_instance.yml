@@ -55,19 +55,6 @@ jobs:
         with:
           PATTERNS: |
             ${{ matrix.dir }}*.tf
-
-      - name: Check ETag
-        id: chkETag
-        if: steps.diff.outputs.diff && github.event_name == 'push'
-        working-directory: ${{ matrix.dir }}
-        run: |
-          mv ./etag-tfstate.txt{,.old}
-          aws s3api head-object --bucket miyashita-tfstate --key ${{ github.repository }}/${{ matrix.dir }}terraform.tfstate | jq -r .ETag > ./etag-tfstate.txt
-          diff -u ./etag-tfstate.txt.old ./etag-tfstate.txt
-          if [ $? -ne 0 ]; then
-            echo "The ETag has changed since the last check."
-            exit 1
-          fi
     
       - name: Setup terraform
         id: setupTf
