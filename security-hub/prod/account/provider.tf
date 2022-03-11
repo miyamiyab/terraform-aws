@@ -9,8 +9,8 @@ terraform {
 }
 
 provider "aws" {
-  region  = "ap-northeast-1"
+  region = "ap-northeast-1"
   assume_role {
-    role_arn     = var.assume_role_arn
+    role_arn = var.assume_role_arn
   }
 }

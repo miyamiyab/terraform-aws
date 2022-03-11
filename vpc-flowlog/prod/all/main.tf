@@ -6,5 +6,5 @@ resource "aws_flow_log" "example" {
 }
 
 provider "aws" {
-  region  = "ap-northeast-1"
+  region = "ap-northeast-1"
 }
