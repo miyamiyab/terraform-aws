@@ -12,7 +12,9 @@ jobs:
       env:
         INFO: ${{ toJson(github.event) }}
       run: |
-        echo  ${{ github.ref }}
+        echo github.ref ${{ github.ref }}
+        echo github.head_ref ${{ github.head_ref }}
+        echo github.ref_name ${{ github.ref_name }}
         echo "$INFO"
     - name: check esist pr
       env:
