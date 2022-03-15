@@ -49,8 +49,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_PAT }}
       - name: Extract target directories.
         id: set-dirs
         run: |
