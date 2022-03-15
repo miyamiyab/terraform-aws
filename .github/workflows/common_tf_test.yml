@@ -67,12 +67,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
         
       # .tfファイルに、前回のコミットと差分がなければスキップ。.github/やその他ファイルの変更は対象外とする。
       - name: Check diff
         id: diff
         uses: technote-space/get-diff-action@v4.0.2
         with:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PATTERNS: |
             ${{ matrix.dir }}*.tf
       
@@ -218,7 +221,7 @@ jobs:
         if: steps.diff.outputs.diff && github.event_name == 'pull_request'
         uses: reviewdog/action-tfsec@master
         with:
-          github_token: ${{ secrets.github_token }}
+          github_token: ${{ secrets.GH_PAT }}
           working_directory: ${{ matrix.dir }} # Change working directory
           level: info # Get more output from reviewdog
           reporter: github-pr-review # Change reviewdog reporter
