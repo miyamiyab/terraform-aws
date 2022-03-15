@@ -20,6 +20,7 @@ on:
 permissions: 
       id-token: write
       pull-requests: write
+      contents: read
       
 jobs:
   isIssueExsit:
@@ -67,8 +68,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_PAT }}
         
       # .tfファイルに、前回のコミットと差分がなければスキップ。.github/やその他ファイルの変更は対象外とする。
       - name: Check diff
