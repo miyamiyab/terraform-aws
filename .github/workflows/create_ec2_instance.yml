@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "ec2/**/**/main.tf"
-      - "ec2/**/**/variables.tf"
+      - "ec2/**/**/local.tf"
 
 permissions: 
       id-token: write
@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_PAT }}
       - id: set-dirs
         run: echo "::set-output name=dir::$(ls -d ec2/*/*/ | jq -R -s -c 'split("\n")[:-1]')"
         
@@ -38,8 +36,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_PAT }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
