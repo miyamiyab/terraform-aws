@@ -14,8 +14,7 @@ on:
       # 開発ブランチにpushされた場合に実行する。
       - '**/issue-[0-9]+'
     paths-ignore:
-      # ETagの更新ではワークフローは実行しない。push,PRの度に+1回WFが実行されるため。
-      - '**/**/**/etag-tfstate.txt'
+      - '.github/**/**'
 
 permissions: 
       id-token: write
