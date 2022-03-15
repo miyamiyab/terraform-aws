@@ -48,7 +48,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
-          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+          role-to-assume: arn:aws:iam::166313796795:role/role-gha-ec2-full-access
           
       - name: Setup terraform
         id: setupTf

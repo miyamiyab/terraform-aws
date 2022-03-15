@@ -78,7 +78,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PATTERNS: |
             ${{ matrix.dir }}*.tf
-            modules/**/*.tf
       
       # terraform plan等の実行結果を投稿する先となるPRを検索
       - name: Find current pull request
@@ -93,7 +92,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
-          role-to-assume: arn:aws:iam::166313796795:role/test-gha
+          role-to-assume: arn:aws:iam::166313796795:role/role-gha-ec2-full-access
 
       - name: Cache plugin dir
         if: steps.diff.outputs.diff
