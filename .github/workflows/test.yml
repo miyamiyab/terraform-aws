@@ -16,6 +16,7 @@ jobs:
         echo github.ref ${{ github.ref }}
         echo github.head_ref ${{ github.head_ref }}
         echo github.ref_name ${{ github.ref_name }}
+        github.event.push.head_commit.message ${{ github.event.push.head_commit.message }}
         echo "$INFO"
     - name: check esist pr
       env:
