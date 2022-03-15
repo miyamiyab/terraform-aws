@@ -3,7 +3,7 @@ name: test
 on:
   push:
   pull_request:
-  issue:
+  issues:
 jobs:
   plan:
     name: Plan
