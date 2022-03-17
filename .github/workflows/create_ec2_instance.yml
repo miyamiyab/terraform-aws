@@ -47,7 +47,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
-          role-to-assume: arn:aws:iam::166313796795:role/role-gha-ec2-full-access
+          role-to-assume: arn:aws:iam::166313796795:role/role-gha-ec2-create-terminate-instances
 
       # push or pull requestが対象。
       # 前回のコミットと差分がなければスキップ。
@@ -58,10 +58,12 @@ jobs:
           PATTERNS: |
             ${{ matrix.dir }}*.tf
     
+      # バージョンの管理はインフラ担当が実施する
       - name: Setup terraform
-        id: setupTf
         if: steps.diff.outputs.diff
         uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.6
       
       - name: Terraform Init
         id: init
